@@ -44,6 +44,9 @@ class RolePermissionSeeder extends Seeder
             
             // Logistics
             ['name' => 'logistics.invoices', 'display_name' => 'Manage Invoices', 'module' => 'logistics'],
+            
+            // Reports
+            ['name' => 'reports.view', 'display_name' => 'View Reports', 'module' => 'reports'],
         ];
 
         foreach ($permissions as $permission) {
@@ -84,6 +87,13 @@ class RolePermissionSeeder extends Seeder
         $logisticsRole->permissions()->attach(Permission::whereIn('name', [
             'logistics.invoices'
         ])->get());
+
+        // Assign reports.view to all roles (reports accessible to all authenticated users)
+        $allRoles = Role::all();
+        $reportsPermission = Permission::where('name', 'reports.view')->first();
+        foreach ($allRoles as $role) {
+            $role->permissions()->syncWithoutDetaching([$reportsPermission->id]);
+        }
     }
 }
 

@@ -3,86 +3,313 @@
     <!-- Header -->
     <div class="flex justify-between items-center">
       <div>
-        <h2 class="text-3xl font-bold text-gray-900">Production Batches</h2>
-        <p class="text-gray-500 mt-1">Track and monitor production batches</p>
+        <h1 class="text-3xl font-bold text-[#8B4513]">Production</h1>
+        <p class="text-gray-600 mt-1">Track batch progress through production stages</p>
       </div>
+      <Button @click="createNewBatch" class="bg-[#8B4513] hover:bg-[#6B3410] text-white">
+        <Plus class="h-4 w-4 mr-2" />
+        Create New Batch
+      </Button>
     </div>
     
-    <!-- Batches Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="batch in batches" :key="batch.id" class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-        <div class="flex items-start justify-between mb-4">
+    <!-- Batches List -->
+    <div class="space-y-6">
+      <div v-for="batch in batches" :key="batch.id" class="bg-white rounded-lg border border-gray-200 p-6">
+        <!-- Batch Header -->
+        <div class="flex items-start justify-between mb-4 pb-4 border-b">
           <div class="flex-1">
-            <h3 class="text-lg font-bold text-gray-900 mb-1">{{ batch.batch_id }}</h3>
-            <p class="text-sm text-gray-500">{{ batch.order?.product?.product_name || 'N/A' }}</p>
+            <h3 class="text-xl font-bold text-[#8B4513] mb-1">{{ batch.batch_id }}</h3>
+            <p class="text-sm text-gray-600">
+              {{ batch.order?.product?.product_name || 'N/A' }}
+              <span v-if="batch.order?.product?.sku" class="text-gray-500">
+                ({{ batch.order.product.sku }})
+              </span>
+            </p>
           </div>
-          <span class="px-3 py-1 text-xs font-semibold rounded-full" :class="statusClass(batch.status)">
-            {{ batch.status }}
-          </span>
+          <div class="text-right">
+            <div class="bg-amber-100 text-amber-800 px-3 py-1 rounded-md text-xs font-semibold mb-1">
+              {{ getCurrentStageName(batch) }}
+            </div>
+            <div class="text-xs text-gray-600">{{ batch.total_quantity }} units</div>
+          </div>
         </div>
-        
-        <div class="space-y-3 mb-4">
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">Current Stage</span>
-            <span class="text-sm font-semibold text-gray-900">{{ batch.current_stage?.stage_name || batch.currentStage?.stage_name || 'N/A' }}</span>
+
+        <!-- Overall Progress -->
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-semibold text-[#8B4513]">Overall Progress</span>
+            <span class="text-sm font-semibold text-gray-900">{{ batch.overall_progress || 0 }}%</span>
           </div>
-          <div class="flex items-center justify-between">
-            <span class="text-sm text-gray-600">Progress</span>
-            <span class="text-sm font-semibold text-gray-900">
-              {{ batch.current_quantity }} / {{ batch.total_quantity }}
-            </span>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-2">
+          <div class="w-full bg-gray-200 rounded-full h-2.5">
             <div 
-              class="bg-gradient-to-r from-indigo-600 to-purple-600 h-2 rounded-full transition-all duration-300"
-              :style="{ width: `${(batch.current_quantity / batch.total_quantity) * 100}%` }"
+              class="bg-[#8B4513] h-2.5 rounded-full transition-all duration-300"
+              :style="{ width: `${batch.overall_progress || 0}%` }"
             ></div>
           </div>
         </div>
-        
-        <router-link
-          :to="`/production/batches/${batch.id}`"
-          class="block w-full px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg font-medium text-center transition-all duration-200"
-        >
-          View Details
-        </router-link>
-      </div>
-      
-      <div v-if="batches.length === 0" class="col-span-full">
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
-          <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-          </svg>
-          <p class="text-gray-500 text-lg">No batches found</p>
-          <p class="text-gray-400 text-sm mt-2">Create an order to generate batches</p>
+
+        <!-- Production Stage Flow -->
+        <div class="mb-6">
+          <div class="flex items-center gap-2 overflow-x-auto pb-2">
+            <div 
+              v-for="stage in getDisplayStages(batch)" 
+              :key="stage.id"
+              class="flex items-center gap-2 flex-shrink-0"
+            >
+              <div 
+                class="px-4 py-3 rounded-lg min-w-[120px] text-center transition-all"
+                :class="getStageClass(stage, batch)"
+              >
+                <div class="font-semibold text-sm mb-1">{{ getStageDisplayName(stage.name) }}</div>
+                <div class="text-xs font-medium">{{ stage.units_completed }}/{{ batch.total_quantity }}</div>
+              </div>
+              <ArrowRight v-if="stage !== getDisplayStages(batch)[getDisplayStages(batch).length - 1]" 
+                class="h-5 w-5 text-gray-400 flex-shrink-0" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-end gap-3">
+          <Button 
+            variant="outline" 
+            @click="viewDetails(batch.id)"
+            class="border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            View Details
+          </Button>
+          <Button 
+            @click="updateStage(batch.id)"
+            class="bg-[#8B4513] hover:bg-[#6B3410] text-white"
+          >
+            Update Stage
+          </Button>
         </div>
       </div>
+
+      <!-- Empty State -->
+      <div v-if="batches.length === 0" class="bg-white rounded-lg border border-gray-200 p-12 text-center">
+        <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+        </svg>
+        <p class="text-gray-500 text-lg">No batches found</p>
+        <p class="text-gray-400 text-sm mt-2">Create an order to generate batches</p>
+      </div>
     </div>
+
+    <!-- Update Stage Dialog -->
+    <Dialog v-model="updateStageDialogOpen" title="Update Stage" description="Move units to the next production stage">
+      <form @submit.prevent="submitStageUpdate" class="space-y-4">
+        <div class="space-y-2">
+          <Label for="to_stage">To Stage *</Label>
+          <Select v-model="stageUpdateForm.to_stage_id">
+            <SelectItem value="">Select a stage</SelectItem>
+            <SelectItem 
+              v-for="stage in availableStages" 
+              :key="stage.id" 
+              :value="String(stage.id)"
+            >
+              {{ stage.name }}
+            </SelectItem>
+          </Select>
+        </div>
+        <div class="space-y-2">
+          <Label for="quantity">Quantity *</Label>
+          <Input 
+            id="quantity" 
+            type="number" 
+            v-model.number="stageUpdateForm.quantity" 
+            :max="selectedBatch?.current_quantity"
+            min="1"
+            required 
+          />
+          <p class="text-xs text-gray-500">Available: {{ selectedBatch?.current_quantity || 0 }} units</p>
+        </div>
+        <div class="space-y-2">
+          <Label for="notes">Notes</Label>
+          <Input id="notes" v-model="stageUpdateForm.notes" />
+        </div>
+      </form>
+      <template #footer>
+        <Button type="button" variant="outline" @click="updateStageDialogOpen = false">Cancel</Button>
+        <Button type="button" @click="submitStageUpdate" class="bg-[#8B4513] hover:bg-[#6B3410] text-white">
+          Update Stage
+        </Button>
+      </template>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import apiClient from '../../api/client';
+import { useRouter } from 'vue-router';
+import { Plus, ArrowRight } from 'lucide-vue-next';
+import apiClient from '@/api/client';
+import Button from '@/components/ui/Button.vue';
+import Dialog from '@/components/ui/Dialog.vue';
+import Input from '@/components/ui/Input.vue';
+import Label from '@/components/ui/Label.vue';
+import Select from '@/components/ui/Select.vue';
+import SelectItem from '@/components/ui/SelectItem.vue';
 
+const router = useRouter();
 const batches = ref([]);
+const updateStageDialogOpen = ref(false);
+const selectedBatch = ref(null);
+const availableStages = ref([]);
+const stageUpdateForm = ref({
+  to_stage_id: '',
+  quantity: 1,
+  notes: '',
+});
 
-const statusClass = (status) => {
-  const classes = {
-    'pending': 'bg-yellow-100 text-yellow-800',
-    'in_progress': 'bg-blue-100 text-blue-800',
-    'completed': 'bg-green-100 text-green-800',
-    'rework': 'bg-red-100 text-red-800'
-  };
-  return classes[status] || 'bg-gray-100 text-gray-800';
+// Display stages in order (main production flow)
+const displayStageOrder = ['Cutting', 'Schiving', 'Initial Stitching', 'Final Assembly', 'Quality Inspection'];
+
+const getDisplayStages = (batch) => {
+  if (!batch.stage_progress) return [];
+  
+  const currentStageId = batch.current_stage_id;
+  
+  // Filter and sort stages by display order
+  const stages = batch.stage_progress
+    .filter(stage => displayStageOrder.includes(stage.name))
+    .sort((a, b) => {
+      const indexA = displayStageOrder.indexOf(a.name);
+      const indexB = displayStageOrder.indexOf(b.name);
+      return indexA - indexB;
+    })
+    .map(stage => {
+      // For the current stage, include WIP units in the count
+      // For other stages, show only completed units
+      let units_completed = stage.completed_units || 0;
+      if (stage.id === currentStageId) {
+        // Include WIP units for current stage
+        units_completed = Math.min(
+          (stage.completed_units || 0) + (stage.wip_units || 0),
+          batch.total_quantity
+        );
+      }
+      
+      return {
+        ...stage,
+        units_completed: units_completed
+      };
+    });
+  
+  return stages;
 };
 
-onMounted(async () => {
+const getStageDisplayName = (name) => {
+  const displayNames = {
+    'Cutting': 'Cutting',
+    'Schiving': 'Schiving',
+    'Initial Stitching': 'Stitching',
+    'Final Assembly': 'Assembly',
+    'Quality Inspection': 'QA',
+  };
+  return displayNames[name] || name;
+};
+
+const getStageClass = (stage, batch) => {
+  const total = batch.total_quantity;
+  const completed = stage.units_completed || 0;
+  
+  if (completed >= total) {
+    // Completed - Green
+    return 'bg-green-500 text-white';
+  } else if (completed > 0) {
+    // In Progress - Orange
+    return 'bg-orange-500 text-white';
+  } else {
+    // Pending - Grey
+    return 'bg-gray-200 text-gray-700';
+  }
+};
+
+const getCurrentStageName = (batch) => {
+  if (!batch.currentStage) return 'N/A';
+  
+  const displayNames = {
+    'Cutting': 'Cutting',
+    'Schiving': 'Schiving',
+    'Initial Stitching': 'Stitching',
+    'Final Assembly': 'Assembly',
+    'Quality Inspection': 'Quality Inspection',
+  };
+  
+  return displayNames[batch.currentStage.name] || batch.currentStage.name;
+};
+
+const createNewBatch = () => {
+  router.push('/production/orders');
+};
+
+const viewDetails = (batchId) => {
+  router.push(`/production/batches/${batchId}`);
+};
+
+const updateStage = async (batchId) => {
+  selectedBatch.value = batches.value.find(b => b.id === batchId);
+  
+  // Load available stages
+  try {
+    const response = await apiClient.get('/production-stages');
+    availableStages.value = response.data || [];
+  } catch (error) {
+    console.error('Error loading stages:', error);
+    // Fallback: use default stages
+    availableStages.value = [
+      { id: 1, name: 'Cutting' },
+      { id: 2, name: 'Schiving' },
+      { id: 3, name: 'Initial Stitching' },
+      { id: 4, name: 'Final Assembly' },
+      { id: 5, name: 'Binding' },
+      { id: 6, name: 'Polishing & Painting' },
+      { id: 7, name: 'Quality Inspection' },
+    ];
+  }
+  
+  stageUpdateForm.value = {
+    to_stage_id: '',
+    quantity: 1,
+    notes: '',
+  };
+  
+  updateStageDialogOpen.value = true;
+};
+
+const submitStageUpdate = async () => {
+  if (!selectedBatch.value || !stageUpdateForm.value.to_stage_id) {
+    alert('Please select a stage');
+    return;
+  }
+  
+  try {
+    await apiClient.post(`/batches/${selectedBatch.value.id}/move-stage`, {
+      to_stage_id: parseInt(stageUpdateForm.value.to_stage_id),
+      quantity: stageUpdateForm.value.quantity,
+      notes: stageUpdateForm.value.notes,
+    });
+    
+    updateStageDialogOpen.value = false;
+    await loadBatches();
+  } catch (error) {
+    console.error('Error updating stage:', error);
+    alert(error.response?.data?.message || 'Error updating stage');
+  }
+};
+
+const loadBatches = async () => {
   try {
     const response = await apiClient.get('/batches');
-    batches.value = response.data;
+    batches.value = response.data || [];
   } catch (error) {
     console.error('Error fetching batches:', error);
   }
+};
+
+onMounted(() => {
+  loadBatches();
 });
 </script>

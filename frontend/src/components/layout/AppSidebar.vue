@@ -26,7 +26,7 @@
 
       <!-- Module Groups -->
       <div v-for="group in menuGroups" :key="group.name" class="space-y-1">
-        <div v-if="!isCollapsed" class="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
+        <div v-if="!isCollapsed && group.items.length > 0" class="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
           {{ group.name }}
         </div>
         <router-link
@@ -34,7 +34,7 @@
           :key="item.path"
           :to="item.path"
           class="flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-          :class="{ 'bg-accent text-accent-foreground': $route.path === item.path }"
+          :class="{ 'bg-accent text-accent-foreground': $route.path === item.path || ($route.path.startsWith(item.path) && item.path !== '/') }"
         >
           <component :is="item.icon" class="h-5 w-5 flex-shrink-0" />
           <span v-if="!isCollapsed" class="flex-1">{{ item.name }}</span>
@@ -47,6 +47,7 @@
 <script setup>
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import {
   LayoutDashboard,
   Users,
@@ -80,62 +81,105 @@ const props = defineProps({
 });
 
 const route = useRoute();
+const authStore = useAuthStore();
 
-const menuItems = computed(() => [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-]);
+// Permission mapping for each menu item
+const menuItemPermissions = {
+  '/': null, // Dashboard - no permission required
+  '/employees': 'employees.view',
+  '/fixed-assets': 'inventory.manage',
+  '/suppliers': 'inventory.manage',
+  '/inventory/leather': 'inventory.manage',
+  '/inventory/accessories': 'inventory.manage',
+  '/products': 'inventory.manage',
+  '/inventory/finished-goods': 'inventory.manage',
+  '/production/orders': 'production.manage',
+  '/production/batches': 'production.manage',
+  '/finance/product-costs': 'finance.product_cost',
+  '/finance/expenses': 'finance.expenses',
+  '/finance/revenues': 'finance.revenue',
+  '/finance/miscellaneous-costs': 'finance.expenses',
+  '/commercial-invoices': 'logistics.invoices',
+  '/admin/role-assignment': 'employees.create',
+  '/reports': 'reports.view',
+};
 
-const menuGroups = computed(() => [
-  {
-    name: 'Registration',
-    items: [
-      { name: 'Employee Registration', path: '/employees', icon: Users },
-      { name: 'Fixed Asset Registration', path: '/fixed-assets', icon: Building2 },
-    ],
-  },
-  {
-    name: 'Core',
-    items: [
-      { name: 'Suppliers', path: '/suppliers', icon: Truck },
-    ],
-  },
-  {
-    name: 'Inventory',
-    items: [
-      { name: 'Leather', path: '/inventory/leather', icon: Package },
-      { name: 'Accessories', path: '/inventory/accessories', icon: Box },
-      { name: 'Products', path: '/products', icon: ShoppingCart },
-      { name: 'Finished Goods', path: '/inventory/finished-goods', icon: Box },
-    ],
-  },
-  {
-    name: 'Production',
-    items: [
-      { name: 'Orders', path: '/production/orders', icon: ClipboardList },
-      { name: 'Batches', path: '/production/batches', icon: Folder },
-    ],
-  },
-  {
-    name: 'Finance',
-    items: [
-      { name: 'Product Costs', path: '/finance/product-costs', icon: DollarSign },
-      { name: 'Expenses', path: '/finance/expenses', icon: FileText },
-      { name: 'Revenues', path: '/finance/revenues', icon: DollarSign },
-      { name: 'Miscellaneous Costs', path: '/finance/miscellaneous-costs', icon: FileText },
-    ],
-  },
-  {
-    name: 'Admin',
-    items: [
-      { name: 'Role Assignment', path: '/admin/role-assignment', icon: Shield },
-    ],
-  },
-  {
-    name: 'Reports',
-    items: [
-      { name: 'Analytics', path: '/reports', icon: BarChart3 },
-    ],
-  },
-]);
+const hasPermissionForPath = (path) => {
+  const permission = menuItemPermissions[path];
+  if (permission === null || permission === undefined) {
+    return true; // No permission required (e.g., Dashboard)
+  }
+  return authStore.hasPermission(permission);
+};
+
+const menuItems = computed(() => {
+  const items = [
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+  ];
+  return items.filter(item => hasPermissionForPath(item.path));
+});
+
+const menuGroups = computed(() => {
+  const allGroups = [
+    {
+      name: 'Registration',
+      items: [
+        { name: 'Employee Registration', path: '/employees', icon: Users, permission: 'employees.view' },
+        { name: 'Fixed Asset Registration', path: '/fixed-assets', icon: Building2, permission: 'inventory.manage' },
+      ],
+    },
+    {
+      name: 'Core',
+      items: [
+        { name: 'Suppliers', path: '/suppliers', icon: Truck, permission: 'inventory.manage' },
+      ],
+    },
+    {
+      name: 'Inventory',
+      items: [
+        { name: 'Leather', path: '/inventory/leather', icon: Package, permission: 'inventory.manage' },
+        { name: 'Accessories', path: '/inventory/accessories', icon: Box, permission: 'inventory.manage' },
+        { name: 'Products', path: '/products', icon: ShoppingCart, permission: 'inventory.manage' },
+        { name: 'Finished Goods', path: '/inventory/finished-goods', icon: Box, permission: 'inventory.manage' },
+      ],
+    },
+    {
+      name: 'Production',
+      items: [
+        { name: 'Orders', path: '/production/orders', icon: ClipboardList, permission: 'production.manage' },
+        { name: 'Batches', path: '/production/batches', icon: Folder, permission: 'production.manage' },
+      ],
+    },
+    {
+      name: 'Finance',
+      items: [
+        { name: 'Product Costs', path: '/finance/product-costs', icon: DollarSign, permission: 'finance.product_cost' },
+        { name: 'Expenses', path: '/finance/expenses', icon: FileText, permission: 'finance.expenses' },
+        { name: 'Revenues', path: '/finance/revenues', icon: DollarSign, permission: 'finance.revenue' },
+        { name: 'Miscellaneous Costs', path: '/finance/miscellaneous-costs', icon: FileText, permission: 'finance.expenses' },
+      ],
+    },
+    {
+      name: 'Admin',
+      items: [
+        { name: 'Role Assignment', path: '/admin/role-assignment', icon: Shield, permission: 'employees.create' },
+      ],
+    },
+    {
+      name: 'Reports',
+      items: [
+        { name: 'Analytics', path: '/reports', icon: BarChart3, permission: 'reports.view' },
+      ],
+    },
+  ];
+
+  // Filter items within each group and remove groups with no visible items
+  return allGroups
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => hasPermissionForPath(item.path))
+    }))
+    .filter(group => group.items.length > 0);
+});
 </script>
 

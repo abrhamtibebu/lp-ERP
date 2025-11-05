@@ -14,12 +14,26 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   const hasPermission = (permissionName) => {
+    if (!user.value?.roles) return false;
+    
     // GM has all permissions
     if (hasRole('GM')) return true;
     
     // Check if user has the permission through their roles
-    // This would need to be implemented based on your permission structure
-    return false;
+    // Extract all permissions from user's roles
+    const userPermissions = [];
+    user.value.roles.forEach(role => {
+      if (role.permissions && Array.isArray(role.permissions)) {
+        role.permissions.forEach(permission => {
+          if (permission.name && !userPermissions.includes(permission.name)) {
+            userPermissions.push(permission.name);
+          }
+        });
+      }
+    });
+    
+    // Check if the requested permission exists in user's permissions
+    return userPermissions.includes(permissionName);
   };
 
   async function login(email, password) {

@@ -1,13 +1,16 @@
 <template>
   <div class="space-y-6">
-    <ActionBar title="Finished Goods" description="Completed products ready for shipment" />
+    <div>
+      <h1 class="text-3xl font-bold text-[#8B4513]">Finished Goods</h1>
+      <p class="text-gray-600 mt-1">Completed products ready for shipment</p>
+    </div>
 
     <Card>
       <CardContent class="p-0">
         <DataTable :data="finishedGoods" :columns="columns">
           <template #cell-product="{ row }">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center text-white font-semibold">
+              <div class="w-10 h-10 bg-gradient-to-br from-[#8B4513] to-[#6B3410] rounded-lg flex items-center justify-center text-white font-semibold">
                 {{ row.product?.product_name?.charAt(0).toUpperCase() || 'P' }}
               </div>
               <div>
@@ -31,7 +34,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import apiClient from '@/api/client';
-import ActionBar from '@/components/layout/ActionBar.vue';
 import Card from '@/components/ui/Card.vue';
 import CardContent from '@/components/ui/CardContent.vue';
 import DataTable from '@/components/ui/DataTable.vue';

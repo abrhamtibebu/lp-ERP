@@ -12,9 +12,40 @@ class AccessoriesInventoryController extends Controller
     public function index()
     {
         try {
-            // TenantModel already handles tenant scoping
-            $inventory = AccessoriesInventory::with(['submittedBy', 'receivedBy'])->get();
-            return response()->json($inventory);
+            $tenantId = auth()->user()->tenant_id;
+            
+            if (!$tenantId) {
+                return response()->json(['error' => 'User must be associated with a tenant'], 403);
+            }
+            
+            // TenantModel global scope already filters by tenant_id
+            // Just load relationships normally - foreign keys ensure correct data
+            $inventory = AccessoriesInventory::with([
+                'submittedBy',
+                'receivedBy'
+            ])->get();
+            
+            // Calculate statistics
+            $uniqueItems = $inventory->unique('name')->count();
+            $lowStockThreshold = 500; // Threshold for low stock
+            $lowStockCount = $inventory->filter(function ($item) use ($lowStockThreshold) {
+                return $item->quantity < $lowStockThreshold;
+            })->unique('name')->count();
+            
+            $recentImports = AccessoriesInventory::whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count();
+            
+            $stats = [
+                'total_items' => $uniqueItems,
+                'low_stock_items' => $lowStockCount,
+                'recent_imports' => $recentImports,
+            ];
+            
+            return response()->json([
+                'inventory' => $inventory,
+                'stats' => $stats,
+            ]);
         } catch (\Exception $e) {
             Log::error('Error fetching accessories inventory: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
@@ -27,7 +58,14 @@ class AccessoriesInventoryController extends Controller
             // Fallback: return inventory without relationships
             try {
                 $inventory = AccessoriesInventory::get();
-                return response()->json($inventory);
+                return response()->json([
+                    'inventory' => $inventory,
+                    'stats' => [
+                        'total_items' => $inventory->unique('name')->count(),
+                        'low_stock_items' => 0,
+                        'recent_imports' => 0,
+                    ],
+                ]);
             } catch (\Exception $fallbackError) {
                 Log::error('Fallback also failed: ' . $fallbackError->getMessage());
                 return response()->json([
@@ -78,9 +116,14 @@ class AccessoriesInventoryController extends Controller
             'quantity' => 'sometimes|numeric|min:0',
             'unit' => 'nullable|string|max:50',
             'import_invoice_number' => 'nullable|string|max:255',
+            'submitted_by' => 'sometimes|exists:users,id',
+            'received_by' => 'sometimes|exists:users,id',
         ]);
 
-        $inventory->update($request->only(['name', 'quantity', 'unit', 'import_invoice_number']));
+        $inventory->update($request->only([
+            'name', 'quantity', 'unit', 'import_invoice_number', 
+            'submitted_by', 'received_by'
+        ]));
 
         return response()->json($inventory->load(['submittedBy', 'receivedBy']));
     }

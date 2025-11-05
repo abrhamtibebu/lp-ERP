@@ -1,6 +1,9 @@
 <template>
   <div class="space-y-6">
-    <ActionBar title="Revenues" description="Track revenue from commercial invoices" />
+    <div>
+      <h1 class="text-3xl font-bold text-[#8B4513]">Revenues</h1>
+      <p class="text-gray-600 mt-1">Track revenue from commercial invoices</p>
+    </div>
 
     <Card>
       <CardContent class="p-0">
@@ -26,7 +29,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import apiClient from '@/api/client';
-import ActionBar from '@/components/layout/ActionBar.vue';
 import Card from '@/components/ui/Card.vue';
 import CardContent from '@/components/ui/CardContent.vue';
 import DataTable from '@/components/ui/DataTable.vue';

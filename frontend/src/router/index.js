@@ -27,12 +27,14 @@ const routes = [
       {
         path: 'suppliers',
         name: 'Suppliers',
-        component: () => import('../views/Suppliers/Index.vue')
+        component: () => import('../views/Suppliers/Index.vue'),
+        meta: { permission: 'inventory.manage' }
       },
       {
         path: 'fixed-assets',
         name: 'FixedAssets',
-        component: () => import('../views/FixedAssets/Index.vue')
+        component: () => import('../views/FixedAssets/Index.vue'),
+        meta: { permission: 'inventory.manage' }
       },
       {
         path: 'inventory',
@@ -41,17 +43,20 @@ const routes = [
       {
         path: 'inventory/leather',
         name: 'LeatherInventory',
-        component: () => import('../views/Inventory/Leather.vue')
+        component: () => import('../views/Inventory/Leather.vue'),
+        meta: { permission: 'inventory.manage' }
       },
       {
         path: 'inventory/accessories',
         name: 'AccessoriesInventory',
-        component: () => import('../views/Inventory/Accessories.vue')
+        component: () => import('../views/Inventory/Accessories.vue'),
+        meta: { permission: 'inventory.manage' }
       },
       {
         path: 'products',
         name: 'Products',
-        component: () => import('../views/Products/Index.vue')
+        component: () => import('../views/Products/Index.vue'),
+        meta: { permission: 'inventory.manage' }
       },
       {
         path: 'production',
@@ -60,17 +65,20 @@ const routes = [
       {
         path: 'production/orders',
         name: 'Orders',
-        component: () => import('../views/Production/Orders.vue')
+        component: () => import('../views/Production/Orders.vue'),
+        meta: { permission: 'production.manage' }
       },
       {
         path: 'production/batches',
         name: 'Batches',
-        component: () => import('../views/Production/Batches.vue')
+        component: () => import('../views/Production/Batches.vue'),
+        meta: { permission: 'production.manage' }
       },
       {
         path: 'production/batches/:id',
         name: 'BatchDetail',
-        component: () => import('../views/Production/BatchDetail.vue')
+        component: () => import('../views/Production/BatchDetail.vue'),
+        meta: { permission: 'production.manage' }
       },
       {
         path: 'finance',
@@ -85,27 +93,32 @@ const routes = [
       {
         path: 'finance/expenses',
         name: 'Expenses',
-        component: () => import('../views/Finance/Expenses.vue')
+        component: () => import('../views/Finance/Expenses.vue'),
+        meta: { permission: 'finance.expenses' }
       },
       {
         path: 'finance/revenues',
         name: 'Revenues',
-        component: () => import('../views/Finance/Revenues.vue')
+        component: () => import('../views/Finance/Revenues.vue'),
+        meta: { permission: 'finance.revenue' }
       },
       {
         path: 'commercial-invoices',
         name: 'CommercialInvoices',
-        component: () => import('../views/Logistics/Invoices.vue')
+        component: () => import('../views/Logistics/Invoices.vue'),
+        meta: { permission: 'logistics.invoices' }
       },
       {
         path: 'inventory/finished-goods',
         name: 'FinishedGoods',
-        component: () => import('../views/Inventory/FinishedGoods.vue')
+        component: () => import('../views/Inventory/FinishedGoods.vue'),
+        meta: { permission: 'inventory.manage' }
       },
       {
         path: 'finance/miscellaneous-costs',
         name: 'MiscellaneousCosts',
-        component: () => import('../views/Finance/MiscellaneousCosts.vue')
+        component: () => import('../views/Finance/MiscellaneousCosts.vue'),
+        meta: { permission: 'finance.expenses' }
       },
       {
         path: 'admin/role-assignment',
@@ -116,7 +129,13 @@ const routes = [
       {
         path: 'reports',
         name: 'Reports',
-        component: () => import('../views/Reports/Index.vue')
+        component: () => import('../views/Reports/Index.vue'),
+        meta: { permission: 'reports.view' }
+      },
+      {
+        path: 'access-denied',
+        name: 'AccessDenied',
+        component: () => import('../views/AccessDenied.vue')
       }
     ]
   }
@@ -148,7 +167,10 @@ router.beforeEach(async (to, from, next) => {
   } else {
     // Check permissions if specified
     if (to.meta.permission && !authStore.hasPermission(to.meta.permission)) {
-      next('/');
+      next({ 
+        path: '/access-denied', 
+        query: { from: to.path, permission: to.meta.permission } 
+      });
     } else {
       next();
     }

@@ -16,9 +16,39 @@ class CommercialInvoiceController extends Controller
     public function index()
     {
         $invoices = CommercialInvoice::where('tenant_id', auth()->user()->tenant_id)
-            ->with(['order', 'batch', 'createdBy', 'attachments'])
+            ->with(['order.product', 'batch', 'createdBy', 'attachments'])
             ->get();
-        return response()->json($invoices);
+        
+        // Calculate statistics
+        $thisMonth = $invoices->filter(function ($invoice) {
+            return $invoice->created_at->month == now()->month 
+                && $invoice->created_at->year == now()->year;
+        });
+        
+        $totalShipments = $thisMonth->count();
+        $totalValue = $thisMonth->sum('total_amount');
+        
+        $pending = $invoices->filter(function ($invoice) {
+            // Check if invoice status is pending (you may need to add a status field)
+            return !$invoice->order || $invoice->order->status !== 'completed';
+        })->count();
+        
+        $delivered = $invoices->filter(function ($invoice) {
+            // Check if invoice is delivered (you may need to add a status field)
+            return $invoice->order && $invoice->order->status === 'completed';
+        })->count();
+        
+        $stats = [
+            'total_shipments' => $totalShipments,
+            'total_value' => round($totalValue, 2),
+            'pending' => $pending,
+            'delivered' => $delivered,
+        ];
+        
+        return response()->json([
+            'invoices' => $invoices,
+            'stats' => $stats,
+        ]);
     }
 
     public function store(Request $request)

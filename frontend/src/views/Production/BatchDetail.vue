@@ -2,7 +2,7 @@
   <div class="space-y-6">
     <div class="flex justify-between items-center">
       <div>
-        <h2 class="text-2xl font-bold text-gray-800">Batch Details</h2>
+        <h1 class="text-3xl font-bold text-[#8B4513]">Batch Details</h1>
         <p class="text-sm text-gray-600 mt-1">{{ batch?.batch_id || 'Loading...' }}</p>
       </div>
       <Button variant="outline" @click="$router.back()">Back</Button>

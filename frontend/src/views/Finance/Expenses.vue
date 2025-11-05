@@ -1,6 +1,15 @@
 <template>
   <div class="space-y-6">
-    <ActionBar title="Expenses" description="Track and manage company expenses" @add-new="dialogOpen = true" />
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-[#8B4513]">Expenses</h1>
+        <p class="text-gray-600 mt-1">Track and manage company expenses</p>
+      </div>
+      <Button @click="dialogOpen = true" class="bg-[#8B4513] hover:bg-[#6B3410] text-white">
+        <Plus class="h-4 w-4 mr-2" />
+        Add Expense
+      </Button>
+    </div>
 
     <Card>
       <CardContent class="p-0">
@@ -75,7 +84,7 @@
       </form>
       <template #footer>
         <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>
-        <Button type="button" @click="saveExpense">Save</Button>
+        <Button type="button" @click="saveExpense" class="bg-[#8B4513] hover:bg-[#6B3410] text-white">Save</Button>
       </template>
     </Dialog>
   </div>
@@ -84,8 +93,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import apiClient from '@/api/client';
-import { MoreHorizontal } from 'lucide-vue-next';
-import ActionBar from '@/components/layout/ActionBar.vue';
+import { MoreHorizontal, Plus } from 'lucide-vue-next';
 import Card from '@/components/ui/Card.vue';
 import CardContent from '@/components/ui/CardContent.vue';
 import Button from '@/components/ui/Button.vue';

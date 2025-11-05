@@ -1,6 +1,9 @@
 <template>
   <div class="space-y-6">
-    <ActionBar title="Role Assignment" description="GM: Assign roles to users by email and department" />
+    <div>
+      <h1 class="text-3xl font-bold text-[#8B4513]">Role Assignment</h1>
+      <p class="text-gray-600 mt-1">GM: Assign roles to users by email and department</p>
+    </div>
 
     <Card>
       <CardContent class="p-0">
@@ -13,7 +16,7 @@
           </template>
           <template #cell-roles="{ row }">
             <div class="flex gap-2 flex-wrap">
-              <Badge v-for="role in row.roles" :key="role.id" variant="primary">
+              <Badge v-for="role in row.roles" :key="role.id" variant="default">
                 {{ role.display_name || role.name }}
               </Badge>
             </div>
@@ -38,7 +41,7 @@
         <div class="space-y-2">
           <Label for="role_id">Role *</Label>
           <Select v-model="assignForm.role_id">
-            <SelectItem v-for="role in roles" :key="role.id" :value="role.id">
+            <SelectItem v-for="role in roles" :key="role.id" :value="String(role.id)">
               {{ role.display_name || role.name }}
             </SelectItem>
           </Select>
@@ -67,7 +70,6 @@ import { ref, onMounted } from 'vue';
 import { Edit } from 'lucide-vue-next';
 import apiClient from '@/api/client';
 import { useAuthStore } from '@/stores/auth';
-import ActionBar from '@/components/layout/ActionBar.vue';
 import Card from '@/components/ui/Card.vue';
 import CardContent from '@/components/ui/CardContent.vue';
 import Button from '@/components/ui/Button.vue';
@@ -100,7 +102,7 @@ const columns = [
 const openAssignDialog = (user) => {
   selectedUser.value = user;
   assignForm.value = {
-    role_id: user.roles?.[0]?.id || '',
+    role_id: user.roles?.[0]?.id ? String(user.roles[0].id) : '',
     department: user.department || '',
   };
   assignDialogOpen.value = true;
@@ -108,7 +110,11 @@ const openAssignDialog = (user) => {
 
 const assignRole = async () => {
   try {
-    await apiClient.post(`/users/${selectedUser.value.id}/assign-role`, assignForm.value);
+    const payload = {
+      role_id: parseInt(assignForm.value.role_id),
+      department: assignForm.value.department,
+    };
+    await apiClient.post(`/users/${selectedUser.value.id}/assign-role`, payload);
     assignDialogOpen.value = false;
     await loadUsers();
   } catch (error) {

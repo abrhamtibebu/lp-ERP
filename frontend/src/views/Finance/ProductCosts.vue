@@ -1,6 +1,9 @@
 <template>
   <div class="space-y-6">
-    <ActionBar title="Product Costs" description="Manage and lock product costs for production planning" />
+    <div>
+      <h1 class="text-3xl font-bold text-[#8B4513]">Product Costs</h1>
+      <p class="text-gray-600 mt-1">Manage and lock product costs for production planning</p>
+    </div>
 
     <Card>
       <CardContent class="p-0">
@@ -63,7 +66,6 @@
 import { ref, onMounted } from 'vue';
 import apiClient from '@/api/client';
 import { MoreHorizontal } from 'lucide-vue-next';
-import ActionBar from '@/components/layout/ActionBar.vue';
 import Card from '@/components/ui/Card.vue';
 import CardContent from '@/components/ui/CardContent.vue';
 import Button from '@/components/ui/Button.vue';

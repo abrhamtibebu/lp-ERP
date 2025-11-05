@@ -1,13 +1,15 @@
 <template>
   <div class="space-y-6">
-    <ActionBar title="Miscellaneous Costs" description="Manage miscellaneous costs and adjustments">
-      <template #actions>
-        <Button @click="openCreateDialog">
-          <Plus class="mr-2 h-4 w-4" />
-          Add Cost
-        </Button>
-      </template>
-    </ActionBar>
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-[#8B4513]">Miscellaneous Costs</h1>
+        <p class="text-gray-600 mt-1">Manage miscellaneous costs and adjustments</p>
+      </div>
+      <Button @click="openCreateDialog" class="bg-[#8B4513] hover:bg-[#6B3410] text-white">
+        <Plus class="mr-2 h-4 w-4" />
+        Add Cost
+      </Button>
+    </div>
 
     <Card>
       <CardContent class="p-0">
@@ -69,7 +71,6 @@
 import { ref, onMounted, computed } from 'vue';
 import { Plus, Edit, Trash2 } from 'lucide-vue-next';
 import apiClient from '@/api/client';
-import ActionBar from '@/components/layout/ActionBar.vue';
 import Card from '@/components/ui/Card.vue';
 import CardContent from '@/components/ui/CardContent.vue';
 import Button from '@/components/ui/Button.vue';

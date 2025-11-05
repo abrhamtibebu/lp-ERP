@@ -19,7 +19,22 @@ class OrderController extends Controller
     public function index()
     {
         $orders = Order::with(['product', 'batches.currentStage'])->get();
-        return response()->json($orders);
+        
+        // Calculate statistics
+        $stats = [
+            'total' => Order::count(),
+            'in_production' => Order::where('status', 'in_production')->count(),
+            'pending' => Order::where('status', 'pending')->count(),
+            'completed' => Order::where('status', 'completed')
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)
+                ->count(),
+        ];
+        
+        return response()->json([
+            'orders' => $orders,
+            'stats' => $stats,
+        ]);
     }
 
     public function store(Request $request)

@@ -20,7 +20,7 @@
     </div>
 
     <!-- Charts and Tables -->
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div v-if="authStore.hasPermission('production.manage')" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <!-- Orders Over Time Chart -->
       <Card class="col-span-2">
         <CardHeader>
@@ -30,6 +30,7 @@
         <CardContent>
           <div class="h-64">
             <LineChart v-if="ordersChartData" :data="ordersChartData" :options="chartOptions" />
+            <p v-else class="text-center text-muted-foreground py-16">No order data available</p>
           </div>
         </CardContent>
       </Card>
@@ -43,6 +44,7 @@
         <CardContent>
           <div class="h-64">
             <DoughnutChart v-if="batchStatusChartData" :data="batchStatusChartData" />
+            <p v-else class="text-center text-muted-foreground py-16">No batch data available</p>
           </div>
         </CardContent>
       </Card>
@@ -51,7 +53,7 @@
     <!-- Additional Charts Row -->
     <div class="grid gap-4 md:grid-cols-2">
       <!-- Inventory Levels Chart -->
-      <Card>
+      <Card v-if="authStore.hasPermission('inventory.manage')">
         <CardHeader>
           <CardTitle>Inventory Levels</CardTitle>
           <CardDescription>Leather and Accessories stock</CardDescription>
@@ -59,12 +61,13 @@
         <CardContent>
           <div class="h-64">
             <BarChart v-if="inventoryChartData" :data="inventoryChartData" :options="chartOptions" />
+            <p v-else class="text-center text-muted-foreground py-16">No inventory data available</p>
           </div>
         </CardContent>
       </Card>
 
       <!-- Order Status Distribution -->
-      <Card>
+      <Card v-if="authStore.hasPermission('production.manage')">
         <CardHeader>
           <CardTitle>Order Status Distribution</CardTitle>
           <CardDescription>Orders by status</CardDescription>
@@ -72,13 +75,14 @@
         <CardContent>
           <div class="h-64">
             <PieChart v-if="orderStatusChartData" :data="orderStatusChartData" />
+            <p v-else class="text-center text-muted-foreground py-16">No order data available</p>
           </div>
         </CardContent>
       </Card>
     </div>
 
     <!-- Recent Orders Table -->
-    <Card>
+    <Card v-if="authStore.hasPermission('production.manage')">
       <CardHeader>
         <CardTitle>Recent Orders</CardTitle>
         <CardDescription>Latest production orders</CardDescription>
@@ -117,7 +121,7 @@
     </Card>
 
     <!-- Active Batches List -->
-    <Card>
+    <Card v-if="authStore.hasPermission('production.manage')">
       <CardHeader>
         <CardTitle>Active Batches</CardTitle>
         <CardDescription>Production in progress</CardDescription>
@@ -149,7 +153,7 @@
     </Card>
 
     <!-- Quick Actions -->
-    <Card>
+    <Card v-if="quickActions.length > 0">
       <CardHeader>
         <CardTitle>Quick Actions</CardTitle>
         <CardDescription>Common tasks and shortcuts</CardDescription>
@@ -175,6 +179,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import { Plus, Package, ShoppingCart, TrendingUp, FileText } from 'lucide-vue-next';
 import Card from '@/components/ui/Card.vue';
 import CardHeader from '@/components/ui/CardHeader.vue';
@@ -196,13 +201,29 @@ import DoughnutChart from '@/components/charts/DoughnutChart.vue';
 import apiClient from '@/api/client';
 
 const router = useRouter();
+const authStore = useAuthStore();
 
-const stats = ref([
-  { title: 'Total Orders', value: '0', icon: ShoppingCart, change: null },
-  { title: 'Active Batches', value: '0', icon: Package, change: null },
-  { title: 'Finished Goods', value: '0', icon: TrendingUp, change: 12 },
-  { title: 'Pending Tasks', value: '0', icon: FileText, change: -5 },
-]);
+// Role-based stats - filter based on permissions
+const statsData = ref({
+  'Total Orders': '0',
+  'Active Batches': '0',
+  'Finished Goods': '0',
+  'Pending Tasks': '0',
+});
+
+const stats = computed(() => {
+  const allStats = [
+    { title: 'Total Orders', value: statsData.value['Total Orders'], icon: ShoppingCart, change: null, permission: 'production.manage' },
+    { title: 'Active Batches', value: statsData.value['Active Batches'], icon: Package, change: null, permission: 'production.manage' },
+    { title: 'Finished Goods', value: statsData.value['Finished Goods'], icon: TrendingUp, change: 12, permission: 'inventory.manage' },
+    { title: 'Pending Tasks', value: statsData.value['Pending Tasks'], icon: FileText, change: -5, permission: null }, // Available to all
+  ];
+  
+  return allStats.filter(stat => {
+    if (!stat.permission) return true;
+    return authStore.hasPermission(stat.permission);
+  });
+});
 
 const recentOrders = ref([]);
 const activeBatches = ref([]);
@@ -341,53 +362,73 @@ const orderStatusChartData = computed(() => {
 
 async function fetchDashboardData() {
   try {
-    // Fetch orders
-    const ordersResponse = await apiClient.get('/orders');
-    const orders = ordersResponse.data || [];
-    allOrders.value = orders;
-    stats.value[0].value = orders.length.toString();
-    recentOrders.value = orders.slice(0, 5).map(order => ({
-      id: order.id,
-      order_number: `#${order.id}`,
-      product_name: order.product?.product_name || 'N/A',
-      quantity: order.quantity,
-      status: order.status,
-      created_at: order.created_at,
-    }));
+    // Fetch orders only if user has production.manage permission
+    if (authStore.hasPermission('production.manage')) {
+      try {
+        const ordersResponse = await apiClient.get('/orders');
+        const orders = ordersResponse.data || [];
+        allOrders.value = orders;
+        statsData.value['Total Orders'] = orders.length.toString();
+        recentOrders.value = orders.slice(0, 5).map(order => ({
+          id: order.id,
+          order_number: `#${order.id}`,
+          product_name: order.product?.product_name || 'N/A',
+          quantity: order.quantity,
+          status: order.status,
+          created_at: order.created_at,
+        }));
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      }
 
-    // Fetch batches
-    const batchesResponse = await apiClient.get('/batches');
-    const batches = batchesResponse.data || [];
-    allBatches.value = batches;
-    const activeBatchesList = batches.filter(b => b.status === 'in_progress' || b.status === 'in_production');
-    stats.value[1].value = activeBatchesList.length.toString();
-    activeBatches.value = activeBatchesList.slice(0, 5).map(batch => ({
-      id: batch.id,
-      batch_id: batch.batch_id,
-      product_name: batch.order?.product?.product_name || 'N/A',
-      current_quantity: batch.current_quantity,
-      total_quantity: batch.total_quantity,
-      current_stage: batch.currentStage?.name || batch.currentStage?.stage_name || batch.current_stage?.stage_name || 'N/A',
-    }));
+      // Fetch batches
+      try {
+        const batchesResponse = await apiClient.get('/batches');
+        const batches = batchesResponse.data || [];
+        allBatches.value = batches;
+        const activeBatchesList = batches.filter(b => b.status === 'in_progress' || b.status === 'in_production');
+        statsData.value['Active Batches'] = activeBatchesList.length.toString();
+        activeBatches.value = activeBatchesList.slice(0, 5).map(batch => ({
+          id: batch.id,
+          batch_id: batch.batch_id,
+          product_name: batch.order?.product?.product_name || 'N/A',
+          current_quantity: batch.current_quantity,
+          total_quantity: batch.total_quantity,
+          current_stage: batch.currentStage?.name || batch.currentStage?.stage_name || batch.current_stage?.stage_name || 'N/A',
+        }));
+      } catch (error) {
+        console.error('Error fetching batches:', error);
+      }
+    }
 
-    // Fetch inventory levels for chart
-    try {
-      const inventoryResponse = await apiClient.get('/reports/inventory-levels');
-      inventoryData.value = inventoryResponse.data || { leather: [], accessories: [] };
-    } catch (error) {
-      console.error('Error fetching inventory levels:', error);
+    // Fetch inventory levels only if user has inventory.manage permission
+    if (authStore.hasPermission('inventory.manage')) {
+      try {
+        const inventoryResponse = await apiClient.get('/reports/inventory-levels');
+        inventoryData.value = inventoryResponse.data || { leather: [], accessories: [] };
+        const finishedGoodsStat = stats.value.find(s => s.title === 'Finished Goods');
+        if (finishedGoodsStat) {
+          // You could fetch finished goods count here if needed
+        }
+      } catch (error) {
+        console.error('Error fetching inventory levels:', error);
+      }
     }
   } catch (error) {
     console.error('Error fetching dashboard data:', error);
   }
 }
 
-const quickActions = [
-  { label: 'New Order', icon: Plus, action: '/production/orders' },
-  { label: 'Add Product', icon: Package, action: '/products' },
-  { label: 'Add Employee', icon: Plus, action: '/employees' },
-  { label: 'View Reports', icon: FileText, action: '/reports' },
-];
+const quickActions = computed(() => {
+  const allActions = [
+    { label: 'New Order', icon: Plus, action: '/production/orders', permission: 'production.manage' },
+    { label: 'Add Product', icon: Package, action: '/products', permission: 'inventory.manage' },
+    { label: 'Add Employee', icon: Plus, action: '/employees', permission: 'employees.view' },
+    { label: 'View Reports', icon: FileText, action: '/reports', permission: 'reports.view' },
+  ];
+  
+  return allActions.filter(action => authStore.hasPermission(action.permission));
+});
 
 const getStatusVariant = (status) => {
   const variants = {

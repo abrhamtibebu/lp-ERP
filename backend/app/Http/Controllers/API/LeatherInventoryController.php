@@ -13,17 +13,45 @@ class LeatherInventoryController extends Controller
     public function index()
     {
         try {
-            // TenantModel already handles tenant scoping
-            // Use optional relationships to handle null foreign keys gracefully
+            $tenantId = auth()->user()->tenant_id;
+            
+            if (!$tenantId) {
+                return response()->json(['error' => 'User must be associated with a tenant'], 403);
+            }
+            
+            // TenantModel global scope already filters by tenant_id
+            // Just load relationships normally - foreign keys ensure correct data
             $inventory = LeatherInventory::with([
-                'supplier' => function($query) {
-                    // Supplier extends TenantModel, so it will auto-scope
-                },
+                'supplier',
                 'submittedBy',
                 'receivedBy'
             ])->get();
             
-            return response()->json($inventory);
+            // Calculate statistics
+            $totalStock = $inventory->sum(function ($item) {
+                return $item->quantity_sqft - ($item->consumption_reduction ?? 0);
+            });
+            
+            $uniqueTypes = $inventory->unique('leather_name')->count();
+            $lowStockThreshold = 500; // sqft threshold
+            $lowStockCount = $inventory->filter(function ($item) use ($lowStockThreshold) {
+                $available = $item->quantity_sqft - ($item->consumption_reduction ?? 0);
+                return $available < $lowStockThreshold;
+            })->unique('leather_name')->count();
+            
+            $activeSuppliers = $inventory->pluck('supplier_id')->filter()->unique()->count();
+            
+            $stats = [
+                'total_stock' => round($totalStock, 2),
+                'unique_types' => $uniqueTypes,
+                'low_stock_items' => $lowStockCount,
+                'active_suppliers' => $activeSuppliers,
+            ];
+            
+            return response()->json([
+                'inventory' => $inventory,
+                'stats' => $stats,
+            ]);
         } catch (\Exception $e) {
             Log::error('Error fetching leather inventory: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
@@ -36,7 +64,15 @@ class LeatherInventoryController extends Controller
             // Fallback: return inventory without relationships
             try {
                 $inventory = LeatherInventory::get();
-                return response()->json($inventory);
+                return response()->json([
+                    'inventory' => $inventory,
+                    'stats' => [
+                        'total_stock' => $inventory->sum('quantity_sqft'),
+                        'unique_types' => $inventory->unique('leather_name')->count(),
+                        'low_stock_items' => 0,
+                        'active_suppliers' => 0,
+                    ],
+                ]);
             } catch (\Exception $fallbackError) {
                 Log::error('Fallback also failed: ' . $fallbackError->getMessage());
                 return response()->json([
