@@ -23,6 +23,7 @@ class EmployeeController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'address' => 'nullable|string|max:500',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
             'department' => 'required|string|in:HR,Inventory,Production,Logistics,Finance',
@@ -36,6 +37,7 @@ class EmployeeController extends Controller
         $employee = User::create([
             'tenant_id' => auth()->user()->tenant_id,
             'name' => $request->name,
+            'address' => $request->address,
             'email' => $request->email,
             'password' => bcrypt($request->password),
             'department' => $request->department,
@@ -79,6 +81,7 @@ class EmployeeController extends Controller
 
         $request->validate([
             'name' => 'sometimes|string|max:255',
+            'address' => 'nullable|string|max:500',
             'email' => 'sometimes|email|unique:users,email,' . $id,
             'department' => 'sometimes|string|in:HR,Inventory,Production,Logistics,Finance',
             'position' => 'sometimes|string|max:255',
@@ -89,7 +92,7 @@ class EmployeeController extends Controller
         ]);
 
         $employee->update($request->only([
-            'name', 'email', 'department', 'position', 
+            'name', 'address', 'email', 'department', 'position', 
             'employed_on', 'emergency_contact'
         ]));
 

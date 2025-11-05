@@ -61,7 +61,7 @@
         <div class="space-y-2">
           <Label for="total_amount">Total Amount (Auto-calculated)</Label>
           <Input id="total_amount" v-model.number="form.total_amount" type="number" step="0.01" disabled />
-          <p class="text-xs text-muted-foreground">Amount will be calculated from product details</p>
+          <p class="text-xs text-muted-foreground">Amount is calculated from Product Cost (set in Finance → Product Costs module). Product costs cannot be edited here.</p>
         </div>
         <div class="space-y-2">
           <Label for="invoice_date">Invoice Date</Label>

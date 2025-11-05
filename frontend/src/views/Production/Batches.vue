@@ -41,7 +41,7 @@
         </div>
         
         <router-link
-          :to="`/batches/${batch.id}`"
+          :to="`/production/batches/${batch.id}`"
           class="block w-full px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:shadow-lg font-medium text-center transition-all duration-200"
         >
           View Details

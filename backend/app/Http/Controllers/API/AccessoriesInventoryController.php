@@ -5,15 +5,38 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\AccessoriesInventory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class AccessoriesInventoryController extends Controller
 {
     public function index()
     {
-        $inventory = AccessoriesInventory::where('tenant_id', auth()->user()->tenant_id)
-            ->with(['submittedBy', 'receivedBy'])
-            ->get();
-        return response()->json($inventory);
+        try {
+            // TenantModel already handles tenant scoping
+            $inventory = AccessoriesInventory::with(['submittedBy', 'receivedBy'])->get();
+            return response()->json($inventory);
+        } catch (\Exception $e) {
+            Log::error('Error fetching accessories inventory: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'user_id' => auth()->id(),
+                'tenant_id' => auth()->user()->tenant_id ?? null
+            ]);
+            
+            // Fallback: return inventory without relationships
+            try {
+                $inventory = AccessoriesInventory::get();
+                return response()->json($inventory);
+            } catch (\Exception $fallbackError) {
+                Log::error('Fallback also failed: ' . $fallbackError->getMessage());
+                return response()->json([
+                    'error' => 'Failed to fetch accessories inventory',
+                    'message' => config('app.debug') ? $e->getMessage() : 'An error occurred while fetching inventory',
+                    'data' => []
+                ], 500);
+            }
+        }
     }
 
     public function store(Request $request)

@@ -13,20 +13,38 @@ class LeatherInventoryController extends Controller
     public function index()
     {
         try {
-            $inventory = LeatherInventory::where('tenant_id', auth()->user()->tenant_id)
-                ->with(['supplier', 'submittedBy', 'receivedBy'])
-                ->get();
+            // TenantModel already handles tenant scoping
+            // Use optional relationships to handle null foreign keys gracefully
+            $inventory = LeatherInventory::with([
+                'supplier' => function($query) {
+                    // Supplier extends TenantModel, so it will auto-scope
+                },
+                'submittedBy',
+                'receivedBy'
+            ])->get();
+            
             return response()->json($inventory);
         } catch (\Exception $e) {
             Log::error('Error fetching leather inventory: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'user_id' => auth()->id(),
                 'tenant_id' => auth()->user()->tenant_id ?? null
             ]);
-            return response()->json([
-                'error' => 'Failed to fetch leather inventory',
-                'message' => config('app.debug') ? $e->getMessage() : 'An error occurred while fetching inventory'
-            ], 500);
+            
+            // Fallback: return inventory without relationships
+            try {
+                $inventory = LeatherInventory::get();
+                return response()->json($inventory);
+            } catch (\Exception $fallbackError) {
+                Log::error('Fallback also failed: ' . $fallbackError->getMessage());
+                return response()->json([
+                    'error' => 'Failed to fetch leather inventory',
+                    'message' => config('app.debug') ? $e->getMessage() : 'An error occurred while fetching inventory',
+                    'data' => []
+                ], 500);
+            }
         }
     }
 

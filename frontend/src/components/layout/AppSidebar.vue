@@ -60,6 +60,7 @@ import {
   FileText,
   BarChart3,
   Folder,
+  Shield,
 } from 'lucide-vue-next';
 import Separator from '../ui/Separator.vue';
 
@@ -86,11 +87,16 @@ const menuItems = computed(() => [
 
 const menuGroups = computed(() => [
   {
+    name: 'Registration',
+    items: [
+      { name: 'Employee Registration', path: '/employees', icon: Users },
+      { name: 'Fixed Asset Registration', path: '/fixed-assets', icon: Building2 },
+    ],
+  },
+  {
     name: 'Core',
     items: [
-      { name: 'Employees', path: '/employees', icon: Users },
       { name: 'Suppliers', path: '/suppliers', icon: Truck },
-      { name: 'Fixed Assets', path: '/fixed-assets', icon: Building2 },
     ],
   },
   {
@@ -99,6 +105,7 @@ const menuGroups = computed(() => [
       { name: 'Leather', path: '/inventory/leather', icon: Package },
       { name: 'Accessories', path: '/inventory/accessories', icon: Box },
       { name: 'Products', path: '/products', icon: ShoppingCart },
+      { name: 'Finished Goods', path: '/inventory/finished-goods', icon: Box },
     ],
   },
   {
@@ -114,6 +121,13 @@ const menuGroups = computed(() => [
       { name: 'Product Costs', path: '/finance/product-costs', icon: DollarSign },
       { name: 'Expenses', path: '/finance/expenses', icon: FileText },
       { name: 'Revenues', path: '/finance/revenues', icon: DollarSign },
+      { name: 'Miscellaneous Costs', path: '/finance/miscellaneous-costs', icon: FileText },
+    ],
+  },
+  {
+    name: 'Admin',
+    items: [
+      { name: 'Role Assignment', path: '/admin/role-assignment', icon: Shield },
     ],
   },
   {

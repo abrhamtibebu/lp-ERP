@@ -46,15 +46,23 @@
     <Dialog v-model="dialogOpen" :title="dialogTitle" :description="dialogDescription">
       <form @submit.prevent="saveEmployee" class="space-y-4">
         <div class="space-y-2">
-          <Label for="name">Name</Label>
+          <Label for="name">Full Name *</Label>
           <Input id="name" v-model="form.name" required />
         </div>
         <div class="space-y-2">
-          <Label for="email">Email</Label>
-          <Input id="email" type="email" v-model="form.email" required />
+          <Label for="address">Address</Label>
+          <Input id="address" v-model="form.address" />
         </div>
         <div class="space-y-2">
-          <Label for="department">Department</Label>
+          <Label for="email">Email *</Label>
+          <Input id="email" type="email" v-model="form.email" required />
+        </div>
+        <div class="space-y-2" v-if="!editingEmployee">
+          <Label for="password">Password *</Label>
+          <Input id="password" type="password" v-model="form.password" required />
+        </div>
+        <div class="space-y-2">
+          <Label for="department">Department *</Label>
           <Select v-model="form.department">
             <SelectItem value="HR">HR</SelectItem>
             <SelectItem value="Inventory">Inventory</SelectItem>
@@ -65,8 +73,21 @@
           </Select>
         </div>
         <div class="space-y-2">
-          <Label for="position">Position</Label>
-          <Input id="position" v-model="form.position" />
+          <Label for="position">Position Held *</Label>
+          <Input id="position" v-model="form.position" required />
+        </div>
+        <div class="space-y-2">
+          <Label for="employed_on">Employed On (Date) *</Label>
+          <Input id="employed_on" type="date" v-model="form.employed_on" required />
+        </div>
+        <div class="space-y-2">
+          <Label for="emergency_contact">Emergency Contact Person *</Label>
+          <Input id="emergency_contact" v-model="form.emergency_contact" required />
+        </div>
+        <div class="space-y-2">
+          <Label for="documents">Documents (Multiple files)</Label>
+          <Input id="documents" type="file" multiple @change="handleFileChange" />
+          <p class="text-xs text-gray-500">You can upload multiple documents</p>
         </div>
       </form>
       <template #footer>
@@ -99,9 +120,14 @@ const editingEmployee = ref(null);
 
 const form = ref({
   name: '',
+  address: '',
   email: '',
+  password: '',
   department: '',
   position: '',
+  employed_on: '',
+  emergency_contact: '',
+  documents: null,
 });
 
 const dialogTitle = computed(() => editingEmployee.value ? 'Edit Employee' : 'Add Employee');
@@ -114,9 +140,23 @@ const columns = [
   { key: 'position', label: 'Position', sortable: true },
 ];
 
+const handleFileChange = (event) => {
+  form.value.documents = event.target.files;
+};
+
 const openCreateDialog = () => {
   editingEmployee.value = null;
-  form.value = { name: '', email: '', department: '', position: '' };
+  form.value = { 
+    name: '', 
+    address: '',
+    email: '', 
+    password: '',
+    department: '', 
+    position: '', 
+    employed_on: '',
+    emergency_contact: '',
+    documents: null
+  };
   dialogOpen.value = true;
 };
 
@@ -139,15 +179,33 @@ const deleteEmployee = async (employee) => {
 
 const saveEmployee = async () => {
   try {
+    const formData = new FormData();
+    Object.keys(form.value).forEach(key => {
+      if (key === 'documents') {
+        if (form.value.documents) {
+          Array.from(form.value.documents).forEach(file => {
+            formData.append('documents[]', file);
+          });
+        }
+      } else if (form.value[key] !== null && form.value[key] !== '') {
+        formData.append(key, form.value[key]);
+      }
+    });
+
     if (editingEmployee.value) {
-      await apiClient.put(`/employees/${editingEmployee.value.id}`, form.value);
+      await apiClient.put(`/employees/${editingEmployee.value.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
     } else {
-      await apiClient.post('/employees', form.value);
+      await apiClient.post('/employees', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
     }
     dialogOpen.value = false;
     await loadEmployees();
   } catch (error) {
     console.error('Error saving employee:', error);
+    alert(error.response?.data?.message || 'Error saving employee');
   }
 };
 

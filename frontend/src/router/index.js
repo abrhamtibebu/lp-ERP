@@ -98,6 +98,22 @@ const routes = [
         component: () => import('../views/Logistics/Invoices.vue')
       },
       {
+        path: 'inventory/finished-goods',
+        name: 'FinishedGoods',
+        component: () => import('../views/Inventory/FinishedGoods.vue')
+      },
+      {
+        path: 'finance/miscellaneous-costs',
+        name: 'MiscellaneousCosts',
+        component: () => import('../views/Finance/MiscellaneousCosts.vue')
+      },
+      {
+        path: 'admin/role-assignment',
+        name: 'RoleAssignment',
+        component: () => import('../views/Admin/RoleAssignment.vue'),
+        meta: { permission: 'employees.create' }
+      },
+      {
         path: 'reports',
         name: 'Reports',
         component: () => import('../views/Reports/Index.vue')
