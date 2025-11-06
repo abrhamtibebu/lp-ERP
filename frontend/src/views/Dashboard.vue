@@ -366,10 +366,12 @@ async function fetchDashboardData() {
     if (authStore.hasPermission('production.manage')) {
       try {
         const ordersResponse = await apiClient.get('/orders');
-        const orders = ordersResponse.data || [];
-        allOrders.value = orders;
-        statsData.value['Total Orders'] = orders.length.toString();
-        recentOrders.value = orders.slice(0, 5).map(order => ({
+        // Backend returns { orders: [...], stats: {...} }
+        const orders = ordersResponse.data?.orders || ordersResponse.data || [];
+        const ordersArray = Array.isArray(orders) ? orders : [];
+        allOrders.value = ordersArray;
+        statsData.value['Total Orders'] = ordersArray.length.toString();
+        recentOrders.value = ordersArray.slice(0, 5).map(order => ({
           id: order.id,
           order_number: `#${order.id}`,
           product_name: order.product?.product_name || 'N/A',
@@ -385,8 +387,9 @@ async function fetchDashboardData() {
       try {
         const batchesResponse = await apiClient.get('/batches');
         const batches = batchesResponse.data || [];
-        allBatches.value = batches;
-        const activeBatchesList = batches.filter(b => b.status === 'in_progress' || b.status === 'in_production');
+        const batchesArray = Array.isArray(batches) ? batches : [];
+        allBatches.value = batchesArray;
+        const activeBatchesList = batchesArray.filter(b => b.status === 'in_progress' || b.status === 'in_production');
         statsData.value['Active Batches'] = activeBatchesList.length.toString();
         activeBatches.value = activeBatchesList.slice(0, 5).map(batch => ({
           id: batch.id,
