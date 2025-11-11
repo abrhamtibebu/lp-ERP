@@ -1,14 +1,20 @@
 <template>
     <aside
         :class="[
-            'fixed left-0 top-14 z-30 h-[calc(100vh-3.5rem)] w-64 border-r bg-background transition-transform duration-300',
-            isCollapsed
-                ? '-translate-x-full lg:translate-x-0 lg:w-16'
-                : 'translate-x-0',
-            isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0',
+            'fixed left-0 top-14 z-30 h-[calc(100vh-3.5rem)] border-r bg-background transition-transform duration-300',
+            // Mobile: full width when open, hidden when closed
+            isMobile
+                ? isOpen
+                    ? 'w-full sm:w-64'
+                    : '-translate-x-full'
+                : 'w-64',
+            // Desktop: normal width or collapsed
+            !isMobile && (isCollapsed ? 'lg:w-16' : 'w-64'),
         ]"
     >
-        <nav class="flex h-full flex-col p-4 space-y-2">
+        <nav
+            class="flex h-full flex-col overflow-y-auto overflow-x-hidden p-4 space-y-2"
+        >
             <!-- Main Navigation -->
             <div class="space-y-1">
                 <router-link

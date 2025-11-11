@@ -1,20 +1,20 @@
 <template>
-  <nav class="flex items-center space-x-2 px-4 py-2 text-sm text-muted-foreground">
-    <router-link to="/" class="hover:text-foreground">Home</router-link>
-    <ChevronRight class="h-4 w-4" />
+  <nav class="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 text-xs sm:text-sm text-muted-foreground overflow-x-auto">
+    <router-link to="/" class="hover:text-foreground whitespace-nowrap">Home</router-link>
+    <ChevronRight class="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
     <template v-for="(crumb, index) in breadcrumbs" :key="crumb.path">
       <router-link
         v-if="index < breadcrumbs.length - 1 && crumb.isClickable"
         :to="crumb.path"
-        class="hover:text-foreground"
+        class="hover:text-foreground whitespace-nowrap truncate max-w-[100px] sm:max-w-none"
       >
         {{ crumb.name }}
       </router-link>
-      <span v-else-if="index < breadcrumbs.length - 1" class="text-muted-foreground">
+      <span v-else-if="index < breadcrumbs.length - 1" class="text-muted-foreground whitespace-nowrap truncate max-w-[100px] sm:max-w-none">
         {{ crumb.name }}
       </span>
-      <span v-else class="text-foreground font-medium">{{ crumb.name }}</span>
-      <ChevronRight v-if="index < breadcrumbs.length - 1" class="h-4 w-4" />
+      <span v-else class="text-foreground font-medium whitespace-nowrap truncate">{{ crumb.name }}</span>
+      <ChevronRight v-if="index < breadcrumbs.length - 1" class="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
     </template>
   </nav>
 </template>

@@ -61,7 +61,7 @@
         </div>
         <div class="space-y-2" v-if="!editingEmployee">
           <Label for="password">Password *</Label>
-          <Input id="password" type="password" v-model="form.password" required />
+          <PasswordInput id="password" v-model="form.password" required />
         </div>
         <div class="space-y-2">
           <Label for="department">Department *</Label>
@@ -110,6 +110,7 @@ import Button from '@/components/ui/Button.vue';
 import DataTable from '@/components/ui/DataTable.vue';
 import Dialog from '@/components/ui/Dialog.vue';
 import Input from '@/components/ui/Input.vue';
+import PasswordInput from '@/components/ui/PasswordInput.vue';
 import Label from '@/components/ui/Label.vue';
 import Select from '@/components/ui/Select.vue';
 import SelectItem from '@/components/ui/SelectItem.vue';

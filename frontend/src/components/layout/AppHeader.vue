@@ -1,36 +1,36 @@
 <template>
   <header class="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-    <div class="flex h-14 items-center px-4">
-      <div class="flex flex-1 items-center space-x-4">
+    <div class="flex h-14 items-center px-2 sm:px-4">
+      <div class="flex flex-1 items-center space-x-2 sm:space-x-4 min-w-0">
         <!-- Logo -->
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
           <button
             @click="$emit('toggle-sidebar')"
             class="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground lg:hidden"
           >
             <Menu class="h-5 w-5" />
           </button>
-          <router-link to="/" class="flex items-center space-x-2">
-            <Package class="h-6 w-6 text-primary" />
-            <span class="font-bold text-lg">Leather ERP</span>
+          <router-link to="/" class="flex items-center space-x-1 sm:space-x-2">
+            <Package class="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+            <span class="font-bold text-sm sm:text-lg whitespace-nowrap">Leather ERP</span>
           </router-link>
         </div>
 
-        <!-- Search -->
-        <div class="flex-1 max-w-lg">
-          <div class="relative">
+        <!-- Search - Hidden on small mobile, visible on larger screens -->
+        <div class="hidden sm:flex flex-1 max-w-lg min-w-0">
+          <div class="relative w-full">
             <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               v-model="searchQuery"
               placeholder="Search... (Ctrl+K)"
-              class="pl-8 h-9"
+              class="pl-8 h-9 w-full"
               @keydown.ctrl.k.prevent="focusSearch"
             />
           </div>
         </div>
       </div>
 
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-1 sm:space-x-4 flex-shrink-0">
         <!-- Notifications -->
         <Button variant="ghost" size="icon" class="relative">
           <Bell class="h-5 w-5" />
@@ -40,22 +40,22 @@
         <!-- User Menu -->
         <DropdownMenu align="end" class="w-56">
           <template #trigger>
-            <Button variant="ghost" class="flex items-center space-x-2 h-9 px-2">
-              <Avatar class="h-8 w-8">
+            <Button variant="ghost" class="flex items-center space-x-1 sm:space-x-2 h-9 px-1 sm:px-2">
+              <Avatar class="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
                 <AvatarFallback>{{ userInitials }}</AvatarFallback>
               </Avatar>
-              <div class="hidden md:flex flex-col items-start">
-                <span class="text-sm font-medium">{{ user?.name }}</span>
-                <span class="text-xs text-muted-foreground">{{ user?.email }}</span>
+              <div class="hidden md:flex flex-col items-start min-w-0">
+                <span class="text-sm font-medium truncate">{{ user?.name }}</span>
+                <span class="text-xs text-muted-foreground truncate">{{ user?.email }}</span>
               </div>
-              <ChevronDown class="h-4 w-4" />
+              <ChevronDown class="h-4 w-4 hidden sm:block flex-shrink-0" />
             </Button>
           </template>
-          <DropdownMenuItem>
+          <DropdownMenuItem @click="router.push('/profile')">
             <User class="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
-          <DropdownMenuItem>
+          <DropdownMenuItem @click="router.push('/settings')">
             <Settings class="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>

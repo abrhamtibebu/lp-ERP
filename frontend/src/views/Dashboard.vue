@@ -20,9 +20,9 @@
     </div>
 
     <!-- Charts and Tables -->
-    <div v-if="authStore.hasPermission('production.manage')" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div v-if="authStore.hasPermission('production.manage')" class="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       <!-- Orders Over Time Chart -->
-      <Card class="col-span-2">
+      <Card class="col-span-1 md:col-span-2 lg:col-span-2">
         <CardHeader>
           <CardTitle>Orders Over Time</CardTitle>
           <CardDescription>Order trends for the last 7 days</CardDescription>
@@ -88,35 +88,39 @@
         <CardDescription>Latest production orders</CardDescription>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order #</TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow v-for="order in recentOrders" :key="order.id">
-              <TableCell class="font-medium">{{ order.order_number }}</TableCell>
-              <TableCell>{{ order.product_name }}</TableCell>
-              <TableCell>{{ order.quantity }}</TableCell>
-              <TableCell>
-                <Badge :variant="getStatusVariant(order.status)">
-                  {{ order.status }}
-                </Badge>
-              </TableCell>
-              <TableCell>{{ formatDate(order.created_at) }}</TableCell>
-            </TableRow>
-            <TableRow v-if="recentOrders.length === 0">
-              <TableCell colspan="5" class="text-center text-muted-foreground py-8">
-                No orders found
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+        <div class="overflow-x-auto -mx-4 sm:mx-0">
+          <div class="inline-block min-w-full align-middle px-4 sm:px-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order #</TableHead>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="order in recentOrders" :key="order.id">
+                  <TableCell class="font-medium">{{ order.order_number }}</TableCell>
+                  <TableCell>{{ order.product_name }}</TableCell>
+                  <TableCell>{{ order.quantity }}</TableCell>
+                  <TableCell>
+                    <Badge :variant="getStatusVariant(order.status)">
+                      {{ order.status }}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{{ formatDate(order.created_at) }}</TableCell>
+                </TableRow>
+                <TableRow v-if="recentOrders.length === 0">
+                  <TableCell colspan="5" class="text-center text-muted-foreground py-8">
+                    No orders found
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       </CardContent>
     </Card>
 
@@ -131,11 +135,11 @@
           <div
             v-for="batch in activeBatches"
             :key="batch.id"
-            class="flex items-center justify-between space-x-4"
+            class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4"
           >
-            <div class="flex-1 space-y-1">
-              <p class="text-sm font-medium">{{ batch.batch_id }}</p>
-              <p class="text-xs text-muted-foreground">{{ batch.product_name }}</p>
+            <div class="flex-1 space-y-1 min-w-0 w-full sm:w-auto">
+              <p class="text-sm font-medium truncate">{{ batch.batch_id }}</p>
+              <p class="text-xs text-muted-foreground truncate">{{ batch.product_name }}</p>
               <div class="w-full bg-secondary rounded-full h-2">
                 <div
                   class="bg-primary h-2 rounded-full transition-all"
@@ -143,7 +147,7 @@
                 ></div>
               </div>
             </div>
-            <Badge variant="outline">{{ batch.current_stage }}</Badge>
+            <Badge variant="outline" class="flex-shrink-0">{{ batch.current_stage }}</Badge>
           </div>
           <p v-if="activeBatches.length === 0" class="text-center text-muted-foreground py-4">
             No active batches
@@ -159,16 +163,16 @@
         <CardDescription>Common tasks and shortcuts</CardDescription>
       </CardHeader>
       <CardContent>
-        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div class="grid gap-4 grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
           <Button
             v-for="action in quickActions"
             :key="action.label"
             variant="outline"
-            class="h-24 flex-col"
+            class="h-20 sm:h-24 flex-col text-xs sm:text-sm"
             @click="handleQuickAction(action)"
           >
-            <component :is="action.icon" class="h-6 w-6 mb-2" />
-            <span>{{ action.label }}</span>
+            <component :is="action.icon" class="h-5 w-5 sm:h-6 sm:w-6 mb-1 sm:mb-2" />
+            <span class="text-center">{{ action.label }}</span>
           </Button>
         </div>
       </CardContent>

@@ -11,6 +11,8 @@ Route::post('/login', [App\Http\Controllers\API\AuthController::class, 'login'])
 Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::post('/logout', [App\Http\Controllers\API\AuthController::class, 'logout']);
     Route::get('/user', [App\Http\Controllers\API\AuthController::class, 'user']);
+    Route::put('/user/profile', [App\Http\Controllers\API\AuthController::class, 'updateProfile']);
+    Route::put('/user/change-password', [App\Http\Controllers\API\AuthController::class, 'changePassword']);
     
     // Employees (HR role)
     Route::apiResource('employees', App\Http\Controllers\API\EmployeeController::class)
