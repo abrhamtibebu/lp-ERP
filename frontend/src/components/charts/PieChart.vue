@@ -9,12 +9,14 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import {
   Chart as ChartJS,
   ArcElement,
+  PieController,
   Tooltip,
   Legend
 } from 'chart.js';
 
 ChartJS.register(
   ArcElement,
+  PieController,
   Tooltip,
   Legend
 );

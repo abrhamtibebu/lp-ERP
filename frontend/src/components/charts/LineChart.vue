@@ -12,6 +12,7 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  LineController,
   Title,
   Tooltip,
   Legend,
@@ -23,6 +24,7 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  LineController,
   Title,
   Tooltip,
   Legend,
@@ -73,7 +75,7 @@ const defaultOptions = {
 };
 
 onMounted(() => {
-  if (chartCanvas.value) {
+  if (chartCanvas.value && props.data) {
     chartInstance = new ChartJS(chartCanvas.value, {
       type: 'line',
       data: props.data,
@@ -83,7 +85,17 @@ onMounted(() => {
 });
 
 watch(() => props.data, (newData) => {
-  if (chartInstance) {
+  if (!newData) return;
+  
+  if (!chartInstance && chartCanvas.value) {
+    // Create chart if it doesn't exist yet
+    chartInstance = new ChartJS(chartCanvas.value, {
+      type: 'line',
+      data: newData,
+      options: { ...defaultOptions, ...props.options }
+    });
+  } else if (chartInstance) {
+    // Update existing chart
     chartInstance.data = newData;
     chartInstance.update();
   }

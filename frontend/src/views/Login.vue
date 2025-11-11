@@ -94,10 +94,6 @@
             </span>
           </button>
         </form>
-
-        <div class="mt-6 text-center text-sm text-gray-600">
-          <p>Demo credentials: <span class="font-semibold">gm@example.com</span> / <span class="font-semibold">password123</span></p>
-        </div>
       </div>
     </div>
   </div>
