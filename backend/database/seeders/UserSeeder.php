@@ -12,7 +12,51 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create a demo tenant
+        // Create or get super-admin tenant from .env
+        $superAdminTenantName = env('SUPER_ADMIN_TENANT_NAME', 'Main Company');
+        $superAdminTenantSlug = env('SUPER_ADMIN_TENANT_SLUG', 'main-company');
+        
+        $superAdminTenant = Tenant::firstOrCreate(
+            ['slug' => $superAdminTenantSlug],
+            [
+                'name' => $superAdminTenantName,
+                'leather_consumption_mode' => 'formula',
+                'settings' => []
+            ]
+        );
+
+        // Create super-admin user from .env
+        $superAdminEmail = env('SUPER_ADMIN_EMAIL', 'admin@example.com');
+        $superAdminPassword = env('SUPER_ADMIN_PASSWORD', 'admin123');
+        $superAdminName = env('SUPER_ADMIN_NAME', 'Super Admin');
+
+        $gmRole = Role::where('name', 'GM')->first();
+        
+        if ($gmRole) {
+            $superAdmin = User::firstOrCreate(
+                ['email' => $superAdminEmail],
+                [
+                    'name' => $superAdminName,
+                    'password' => Hash::make($superAdminPassword),
+                    'tenant_id' => $superAdminTenant->id,
+                    'department' => 'Administration',
+                    'position' => 'Super Admin',
+                    'employed_on' => now(),
+                ]
+            );
+
+            // Assign GM role to super-admin
+            if (!$superAdmin->roles()->wherePivot('tenant_id', $superAdminTenant->id)->where('role_id', $gmRole->id)->exists()) {
+                $superAdmin->roles()->attach($gmRole->id, ['tenant_id' => $superAdminTenant->id]);
+            }
+
+            $this->command->info('Super Admin created successfully!');
+            $this->command->info("Email: {$superAdminEmail}");
+            $this->command->info("Password: {$superAdminPassword}");
+            $this->command->info('');
+        }
+
+        // Create a demo tenant (for demo data)
         $tenant = Tenant::firstOrCreate(
             ['slug' => 'demo-company'],
             [
@@ -23,7 +67,6 @@ class UserSeeder extends Seeder
         );
 
         // Get all roles
-        $gmRole = Role::where('name', 'GM')->first();
         $hrRole = Role::where('name', 'HR')->first();
         $inventoryRole = Role::where('name', 'Inventory Manager')->first();
         $productionRole = Role::where('name', 'Production Supervisor')->first();
