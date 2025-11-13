@@ -18,12 +18,14 @@ class User extends Authenticatable
         'tenant_id',
         'name',
         'address',
+        'country',
         'email',
         'password',
         'department',
         'position',
         'employed_on',
         'emergency_contact',
+        'preferences',
     ];
 
     protected $hidden = [
@@ -37,6 +39,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'employed_on' => 'date',
+            'preferences' => 'array',
         ];
     }
 
@@ -52,6 +55,13 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class, 'permission_user')
+            ->withPivot('tenant_id')
+            ->withTimestamps();
+    }
+
     public function employeeDocuments(): HasMany
     {
         return $this->hasMany(EmployeeDocument::class);
@@ -59,9 +69,9 @@ class User extends Authenticatable
 
     public function hasRole(string $roleName): bool
     {
-        // GM has all permissions
-        if ($roleName === 'GM') {
-            return $this->roles()->where('name', 'GM')->exists();
+        // Admin has all permissions
+        if ($roleName === 'Admin') {
+            return $this->roles()->where('name', 'Admin')->exists();
         }
 
         return $this->roles()->where('name', $roleName)->exists();
@@ -69,11 +79,20 @@ class User extends Authenticatable
 
     public function hasPermission(string $permissionName): bool
     {
-        // GM has all permissions
-        if ($this->hasRole('GM')) {
+        // Admin has all permissions
+        if ($this->hasRole('Admin')) {
             return true;
         }
 
+        // Check direct user permissions (with tenant scope)
+        if ($this->permissions()
+            ->where('name', $permissionName)
+            ->wherePivot('tenant_id', $this->tenant_id)
+            ->exists()) {
+            return true;
+        }
+
+        // Check role-based permissions
         return $this->roles()
             ->whereHas('permissions', function ($query) use ($permissionName) {
                 $query->where('name', $permissionName);

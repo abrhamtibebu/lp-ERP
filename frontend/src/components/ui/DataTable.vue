@@ -23,8 +23,9 @@
     </div>
 
     <!-- Table -->
-    <div class="rounded-md border">
-      <Table>
+    <div class="rounded-md border w-full overflow-hidden">
+      <div class="overflow-y-auto max-h-[calc(100vh-300px)]">
+        <Table class="w-full table-fixed">
         <TableHeader>
           <TableRow>
             <TableHead v-if="selectable" class="w-12">
@@ -92,6 +93,7 @@
           </TableRow>
         </TableBody>
       </Table>
+      </div>
     </div>
 
     <!-- Pagination -->

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->foreignId('batch_id')->constrained()->onDelete('cascade');
-            $table->foreignId('leather_inventory_id')->constrained()->onDelete('restrict');
+            $table->foreignId('leather_inventory_id')->constrained('leather_inventory')->onDelete('restrict');
             $table->decimal('quantity_consumed', 10, 2);
             $table->enum('consumption_type', ['formula', 'manual', 'hybrid']);
             $table->text('notes')->nullable();

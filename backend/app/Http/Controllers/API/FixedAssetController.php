@@ -22,20 +22,18 @@ class FixedAssetController extends Controller
         $totalPurchaseValue = 0;
         
         foreach ($assets as $asset) {
-            if ($asset->purchase_year && $asset->depreciation) {
+            $purchaseValue = $asset->purchase_value ?? 0;
+            $totalPurchaseValue += $purchaseValue;
+            
+            if ($asset->purchase_year && $asset->depreciation && $purchaseValue > 0) {
                 $yearsSincePurchase = now()->year - (new \DateTime($asset->purchase_year))->format('Y');
-                // Estimate purchase value (in real system, this would be stored)
-                $estimatedPurchase = 50000;
-                $totalPurchaseValue += $estimatedPurchase;
                 
                 // Calculate current value: purchase * (1 - depreciation_rate)^years
                 $depreciationRate = $asset->depreciation / 100;
-                $currentValue = $estimatedPurchase * pow(1 - $depreciationRate, max($yearsSincePurchase, 0));
+                $currentValue = $purchaseValue * pow(1 - $depreciationRate, max($yearsSincePurchase, 0));
                 $totalCurrentValue += max($currentValue, 0);
             } else {
-                $estimatedPurchase = 50000;
-                $totalPurchaseValue += $estimatedPurchase;
-                $totalCurrentValue += $estimatedPurchase;
+                $totalCurrentValue += $purchaseValue;
             }
         }
         
@@ -59,7 +57,10 @@ class FixedAssetController extends Controller
     {
         $request->validate([
             'description' => 'required|string|max:255',
+            'category' => 'nullable|string|in:Production Equipment,Office Equipment,Quality Control,Logistics,Maintenance Equipment',
             'purchase_year' => 'nullable|date',
+            'purchase_value' => 'nullable|numeric|min:0',
+            'currency' => 'nullable|string|in:USD,ETB',
             'depreciation' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
@@ -67,7 +68,10 @@ class FixedAssetController extends Controller
         $asset = FixedAsset::create([
             'tenant_id' => auth()->user()->tenant_id,
             'description' => $request->description,
+            'category' => $request->category,
             'purchase_year' => $request->purchase_year,
+            'purchase_value' => $request->purchase_value,
+            'currency' => $request->currency ?? 'USD',
             'depreciation' => $request->depreciation,
             'notes' => $request->notes,
         ]);
@@ -77,29 +81,32 @@ class FixedAssetController extends Controller
 
     public function show($id)
     {
-        $asset = FixedAsset::findOrFail($id);
+        $asset = FixedAsset::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
         return response()->json($asset);
     }
 
     public function update(Request $request, $id)
     {
-        $asset = FixedAsset::findOrFail($id);
+        $asset = FixedAsset::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
 
         $request->validate([
             'description' => 'sometimes|string|max:255',
+            'category' => 'nullable|string|in:Production Equipment,Office Equipment,Quality Control,Logistics,Maintenance Equipment',
             'purchase_year' => 'nullable|date',
+            'purchase_value' => 'nullable|numeric|min:0',
+            'currency' => 'nullable|string|in:USD,ETB',
             'depreciation' => 'sometimes|numeric|min:0',
             'notes' => 'nullable|string',
         ]);
 
-        $asset->update($request->only(['description', 'purchase_year', 'depreciation', 'notes']));
+        $asset->update($request->only(['description', 'category', 'purchase_year', 'purchase_value', 'currency', 'depreciation', 'notes']));
 
         return response()->json($asset);
     }
 
     public function destroy($id)
     {
-        $asset = FixedAsset::findOrFail($id);
+        $asset = FixedAsset::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
         $asset->delete();
 
         return response()->json(['message' => 'Asset deleted successfully']);

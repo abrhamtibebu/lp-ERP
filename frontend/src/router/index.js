@@ -103,7 +103,21 @@ const routes = [
         meta: { permission: 'finance.revenue' }
       },
       {
-        path: 'commercial-invoices',
+        path: 'operations',
+        redirect: '/operations/procurement'
+      },
+      {
+        path: 'operations/procurement',
+        name: 'Procurement',
+        component: () => import('../views/Operations/Procurement.vue'),
+        meta: { permission: 'operations.manage' }
+      },
+      {
+        path: 'logistics',
+        redirect: '/logistics/invoices'
+      },
+      {
+        path: 'logistics/invoices',
         name: 'CommercialInvoices',
         component: () => import('../views/Logistics/Invoices.vue'),
         meta: { permission: 'logistics.invoices' }
@@ -119,6 +133,12 @@ const routes = [
         name: 'MiscellaneousCosts',
         component: () => import('../views/Finance/MiscellaneousCosts.vue'),
         meta: { permission: 'finance.expenses' }
+      },
+      {
+        path: 'admin/roles',
+        name: 'Roles',
+        component: () => import('../views/Admin/Roles.vue'),
+        meta: { permission: 'employees.create' }
       },
       {
         path: 'admin/role-assignment',

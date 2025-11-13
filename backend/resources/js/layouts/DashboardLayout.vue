@@ -4,7 +4,7 @@
     <aside class="fixed inset-y-0 left-0 w-64 bg-gray-800 text-white">
       <div class="flex flex-col h-full">
         <div class="flex items-center justify-center h-16 bg-gray-900">
-          <h1 class="text-xl font-bold">Leather ERP</h1>
+          <h1 class="text-xl font-bold">ERP</h1>
         </div>
         <nav class="flex-1 px-4 py-4 space-y-2">
           <router-link
@@ -76,7 +76,7 @@ const menuItems = computed(() => {
   
   // Filter menu items based on permissions
   return items.filter(item => {
-    if (item.path === '/product-costs' && !authStore.hasRole('Finance') && !authStore.hasRole('GM')) {
+    if (item.path === '/product-costs' && !authStore.hasRole('Finance') && !authStore.hasRole('Admin')) {
       return false;
     }
     return true;

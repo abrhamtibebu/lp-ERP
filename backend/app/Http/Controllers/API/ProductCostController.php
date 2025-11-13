@@ -21,6 +21,7 @@ class ProductCostController extends Controller
         $request->validate([
             'product_id' => 'required|exists:products,id',
             'cost' => 'required|numeric|min:0',
+            'currency' => 'nullable|string|in:USD,ETB',
             'notes' => 'nullable|string',
         ]);
 
@@ -31,6 +32,7 @@ class ProductCostController extends Controller
             ],
             [
                 'cost' => $request->cost,
+                'currency' => $request->currency ?? 'USD',
                 'is_locked' => true,
                 'locked_by' => auth()->id(),
                 'locked_at' => now(),
@@ -53,11 +55,13 @@ class ProductCostController extends Controller
 
         $request->validate([
             'cost' => 'sometimes|numeric|min:0',
+            'currency' => 'nullable|string|in:USD,ETB',
             'notes' => 'nullable|string',
         ]);
 
         $cost->update([
             'cost' => $request->cost ?? $cost->cost,
+            'currency' => $request->currency ?? $cost->currency ?? 'USD',
             'locked_by' => auth()->id(),
             'locked_at' => now(),
             'notes' => $request->notes ?? $cost->notes,

@@ -1,4 +1,4 @@
-# Leather Goods Manufacturing ERP System
+# Parker Clay ERP System
 
 A comprehensive multi-tenant SaaS ERP platform for leather goods manufacturing, built with Laravel 12 and Vue 3.
 

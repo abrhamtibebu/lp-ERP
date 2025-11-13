@@ -29,20 +29,34 @@
             </main>
         </div>
         <Toast ref="toastRef" />
+        <ConfirmDialog 
+            :model-value="confirmDialog.isOpen"
+            :title="confirmDialog.title"
+            :message="confirmDialog.message"
+            :confirm-text="confirmDialog.confirmText"
+            :cancel-text="confirmDialog.cancelText"
+            :type="confirmDialog.type"
+            @confirm="handleConfirm"
+            @cancel="handleCancel"
+        />
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, provide } from "vue";
+import { ref, onMounted, onUnmounted, getCurrentInstance, nextTick } from "vue";
 import { useWindowSize } from "@vueuse/core";
 import AppHeader from "@/components/layout/AppHeader.vue";
 import AppSidebar from "@/components/layout/AppSidebar.vue";
 import AppBreadcrumb from "@/components/layout/AppBreadcrumb.vue";
 import Toast from "@/components/ui/Toast.vue";
+import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
+import { useConfirm } from "@/composables/useConfirm";
 
 const isSidebarOpen = ref(true);
 const isSidebarCollapsed = ref(false);
 const toastRef = ref(null);
+const instance = getCurrentInstance();
+const { confirmDialog, handleConfirm, handleCancel } = useConfirm();
 
 const { width } = useWindowSize();
 const isMobile = ref(false);
@@ -56,13 +70,14 @@ const updateMobile = () => {
     }
 };
 
-onMounted(() => {
+onMounted(async () => {
     updateMobile();
     window.addEventListener("resize", updateMobile);
 
-    // Provide toast instance globally
-    if (toastRef.value) {
-        provide("toast", toastRef.value);
+    // Provide toast instance globally via app.config.globalProperties
+    await nextTick();
+    if (toastRef.value && instance?.appContext?.config?.globalProperties) {
+        instance.appContext.config.globalProperties.$toast = toastRef.value;
     }
 });
 

@@ -15,6 +15,7 @@ class CommercialInvoice extends TenantModel
         'invoice_number',
         'product_details',
         'total_amount',
+        'currency',
         'invoice_date',
         'notes',
         'created_by',

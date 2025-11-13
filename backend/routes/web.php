@@ -3,5 +3,5 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return response()->json(['message' => 'Leather ERP API', 'version' => '1.0']);
+    return response()->json(['message' => 'Parker Clay ERP API', 'version' => '1.0']);
 });

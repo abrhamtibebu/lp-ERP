@@ -15,8 +15,12 @@ class Product extends TenantModel
         'sku',
         'weight_kg',
         'unit_price',
+        'currency',
         'consumption_formula',
         'description',
+        'image_url',
+        'brand_logo_url',
+        'brand_name',
     ];
 
     protected $casts = [

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 // Public routes
 Route::post('/login', [App\Http\Controllers\API\AuthController::class, 'login']);
@@ -14,22 +15,44 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::put('/user/profile', [App\Http\Controllers\API\AuthController::class, 'updateProfile']);
     Route::put('/user/change-password', [App\Http\Controllers\API\AuthController::class, 'changePassword']);
     
+    // Settings
+    Route::get('/settings/user', [App\Http\Controllers\API\SettingsController::class, 'getUserSettings']);
+    Route::put('/settings/user', [App\Http\Controllers\API\SettingsController::class, 'updateUserSettings']);
+    Route::get('/settings/tenant', [App\Http\Controllers\API\SettingsController::class, 'getTenantSettings']);
+    Route::put('/settings/tenant', [App\Http\Controllers\API\SettingsController::class, 'updateTenantSettings']);
+    Route::get('/settings/export-data', [App\Http\Controllers\API\SettingsController::class, 'exportUserData']);
+    
     // Employees (HR role)
     Route::apiResource('employees', App\Http\Controllers\API\EmployeeController::class)
         ->middleware('permission:employees.create,employees.edit');
     
     // Suppliers
     Route::apiResource('suppliers', App\Http\Controllers\API\SupplierController::class);
+    // Fetch business info from Ethiopian Trade Bureau API by TIN
+    Route::get('/suppliers/fetch-business-info/{tinNumber}', [App\Http\Controllers\API\SupplierController::class, 'fetchBusinessInfoByTin']);
     
     // Fixed Assets
     Route::apiResource('fixed-assets', App\Http\Controllers\API\FixedAssetController::class);
     
+    // Notifications
+    Route::get('/notifications', [App\Http\Controllers\API\NotificationController::class, 'index']);
+    
     // Inventory
     Route::apiResource('leather-inventory', App\Http\Controllers\API\LeatherInventoryController::class);
+    Route::post('/leather-inventory/{id}/adjust', [App\Http\Controllers\API\LeatherInventoryController::class, 'adjustQuantity']);
+    Route::get('/leather-inventory/low-stock-alerts', [App\Http\Controllers\API\LeatherInventoryController::class, 'lowStockAlerts']);
     Route::apiResource('accessories-inventory', App\Http\Controllers\API\AccessoriesInventoryController::class);
+    Route::post('/accessories-inventory/{id}/adjust', [App\Http\Controllers\API\AccessoriesInventoryController::class, 'adjustQuantity']);
     
-    // Products
-    Route::apiResource('products', App\Http\Controllers\API\ProductController::class);
+    // Products - permission checks are in controller, but allow view access
+    Route::get('/products', [App\Http\Controllers\API\ProductController::class, 'index']);
+    Route::get('/products/{id}', [App\Http\Controllers\API\ProductController::class, 'show']);
+    Route::post('/products', [App\Http\Controllers\API\ProductController::class, 'store'])->middleware('permission:products.manage');
+    Route::put('/products/{id}', [App\Http\Controllers\API\ProductController::class, 'update'])->middleware('permission:products.manage');
+    Route::delete('/products/{id}', [App\Http\Controllers\API\ProductController::class, 'destroy'])->middleware('permission:products.manage');
+    
+    // Parker Clay Import
+    Route::post('/products/import/parker-clay', [App\Http\Controllers\API\ParkerClayImportController::class, 'import'])->middleware('permission:products.manage');
     
     // Production
     Route::apiResource('orders', App\Http\Controllers\API\OrderController::class);
@@ -62,21 +85,48 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
     Route::apiResource('commercial-invoices', App\Http\Controllers\API\CommercialInvoiceController::class);
     Route::get('/commercial-invoices/{invoice}/pdf', [App\Http\Controllers\API\CommercialInvoiceController::class, 'generatePDF']);
     
-    // Finished Goods
-    Route::get('/finished-goods', function () {
-        $finishedGoods = \App\Models\FinishedGood::where('tenant_id', auth()->user()->tenant_id)
-            ->with(['product', 'batch'])
-            ->get();
-        return response()->json($finishedGoods);
-    });
+    // Operations - Procurement
+    Route::apiResource('procurement-requests', App\Http\Controllers\API\ProcurementController::class);
+    Route::post('/procurement-requests/{id}/approve', [App\Http\Controllers\API\ProcurementController::class, 'approve']);
+    Route::post('/procurement-requests/{id}/reject', [App\Http\Controllers\API\ProcurementController::class, 'reject']);
     
-    // Role Assignment (GM only)
+    // Finished Goods
+    Route::get('/finished-goods', [App\Http\Controllers\API\FinishedGoodController::class, 'index']);
+    Route::get('/finished-goods/{id}', [App\Http\Controllers\API\FinishedGoodController::class, 'show']);
+    Route::post('/finished-goods/{id}/adjust', [App\Http\Controllers\API\FinishedGoodController::class, 'adjustQuantity']);
+    
+    // Role Management (Admin only)
+    Route::apiResource('roles', App\Http\Controllers\API\RoleController::class)
+        ->middleware('permission:employees.create');
+    
+    // Role Assignment (Admin only)
     Route::post('/users/{user}/assign-role', [App\Http\Controllers\API\UserController::class, 'assignRole'])
         ->middleware('permission:employees.create');
+    Route::put('/users/{user}/change-password', [App\Http\Controllers\API\UserController::class, 'changePassword'])
+        ->middleware('permission:employees.create');
+    Route::put('/users/{user}/approver-access', [App\Http\Controllers\API\UserController::class, 'updateApproverAccess'])
+        ->middleware('permission:employees.create');
     Route::get('/users', [App\Http\Controllers\API\UserController::class, 'index']);
-    Route::get('/roles', function () {
-        return response()->json(\App\Models\Role::all());
-    });
+    
+    // Permissions (read-only for Admin)
+    Route::get('/permissions', function () {
+        try {
+            if (!auth()->user()->hasRole('Admin')) {
+                return response()->json(['message' => 'Only Admin can view permissions'], 403);
+            }
+            $permissions = \App\Models\Permission::orderBy('module')->orderBy('display_name')->get();
+            $permissionsByModule = $permissions->groupBy('module');
+            return response()->json([
+                'permissions' => $permissions,
+                'permissions_by_module' => $permissionsByModule,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch permissions',
+                'message' => config('app.debug') ? $e->getMessage() : 'An error occurred',
+            ], 500);
+        }
+    })->middleware('permission:employees.create');
     
     // Reports
     Route::get('/reports/wip-tracker', function () {
@@ -146,6 +196,101 @@ Route::middleware(['auth:sanctum', 'tenant'])->group(function () {
             ]);
             return response()->json([
                 'error' => 'Failed to fetch finished goods aging data',
+                'message' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    });
+    
+    // Real-time reporting endpoints with time-based trends
+    Route::get('/reports/inventory-trends', function (Request $request) {
+        try {
+            $tenantId = auth()->user()->tenant_id;
+            $days = $request->get('days', 7); // Default to 7 days
+            $startDate = now()->subDays($days)->startOfDay();
+            
+            // Get inventory trends over time
+            $leatherTrends = DB::table('leather_inventory_adjustments')
+                ->join('leather_inventory', 'leather_inventory_adjustments.leather_inventory_id', '=', 'leather_inventory.id')
+                ->where('leather_inventory.tenant_id', $tenantId)
+                ->where('leather_inventory_adjustments.adjusted_at', '>=', $startDate)
+                ->selectRaw('DATE(leather_inventory_adjustments.adjusted_at) as date, 
+                    SUM(CASE WHEN leather_inventory_adjustments.adjustment_type = "add" THEN leather_inventory_adjustments.quantity ELSE -leather_inventory_adjustments.quantity END) as net_change')
+                ->groupBy('date')
+                ->orderBy('date')
+                ->get();
+            
+            $accessoriesTrends = DB::table('accessories_inventory_adjustments')
+                ->join('accessories_inventory', 'accessories_inventory_adjustments.accessory_inventory_id', '=', 'accessories_inventory.id')
+                ->where('accessories_inventory.tenant_id', $tenantId)
+                ->where('accessories_inventory_adjustments.adjusted_at', '>=', $startDate)
+                ->selectRaw('DATE(accessories_inventory_adjustments.adjusted_at) as date, 
+                    SUM(CASE WHEN accessories_inventory_adjustments.adjustment_type = "add" THEN accessories_inventory_adjustments.quantity ELSE -accessories_inventory_adjustments.quantity END) as net_change')
+                ->groupBy('date')
+                ->orderBy('date')
+                ->get();
+            
+            // Get order trends
+            $orderTrends = DB::table('orders')
+                ->where('tenant_id', $tenantId)
+                ->where('created_at', '>=', $startDate)
+                ->selectRaw('DATE(created_at) as date, COUNT(*) as count, SUM(quantity) as total_quantity')
+                ->groupBy('date')
+                ->orderBy('date')
+                ->get();
+            
+            // Get batch completion trends
+            $batchTrends = DB::table('batches')
+                ->where('tenant_id', $tenantId)
+                ->where('updated_at', '>=', $startDate)
+                ->where('status', 'completed')
+                ->selectRaw('DATE(updated_at) as date, COUNT(*) as completed_count')
+                ->groupBy('date')
+                ->orderBy('date')
+                ->get();
+            
+            return response()->json([
+                'leather_trends' => $leatherTrends,
+                'accessories_trends' => $accessoriesTrends,
+                'order_trends' => $orderTrends,
+                'batch_trends' => $batchTrends,
+                'period_days' => $days,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching inventory trends: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to fetch inventory trends',
+                'message' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    });
+    
+    Route::get('/reports/production-trends', function (Request $request) {
+        try {
+            $tenantId = auth()->user()->tenant_id;
+            $days = $request->get('days', 7);
+            $startDate = now()->subDays($days)->startOfDay();
+            
+            // Get production stage movement trends
+            $stageTrends = DB::table('batch_stage_movements')
+                ->join('batches', 'batch_stage_movements.batch_id', '=', 'batches.id')
+                ->join('production_stages', 'batch_stage_movements.stage_id', '=', 'production_stages.id')
+                ->where('batches.tenant_id', $tenantId)
+                ->where('batch_stage_movements.created_at', '>=', $startDate)
+                ->selectRaw('DATE(batch_stage_movements.created_at) as date, 
+                    production_stages.name as stage_name, 
+                    COUNT(*) as movement_count')
+                ->groupBy('date', 'stage_name')
+                ->orderBy('date')
+                ->get();
+            
+            return response()->json([
+                'stage_trends' => $stageTrends,
+                'period_days' => $days,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching production trends: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to fetch production trends',
                 'message' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }

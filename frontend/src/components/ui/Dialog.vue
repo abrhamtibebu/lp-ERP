@@ -25,17 +25,19 @@
       <div
         v-if="modelValue"
         :class="cn(
-          'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg sm:rounded-lg',
+          'fixed left-[50%] top-[50%] z-50 flex w-full max-w-lg translate-x-[-50%] translate-y-[-50%] flex-col gap-4 border bg-background p-6 shadow-lg sm:rounded-lg max-h-[90vh] overflow-hidden',
           className
         )"
         @click.stop
       >
-        <div v-if="title || description" class="flex flex-col space-y-1.5 text-center sm:text-left">
+        <div v-if="title || description" class="flex flex-col space-y-1.5 text-center sm:text-left flex-shrink-0">
           <h2 v-if="title" class="text-lg font-semibold leading-none tracking-tight">{{ title }}</h2>
           <p v-if="description" class="text-sm text-muted-foreground">{{ description }}</p>
         </div>
+        <div class="flex-1 overflow-y-auto min-h-0">
         <slot />
-        <div v-if="$slots.footer" class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+        </div>
+        <div v-if="$slots.footer" class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 flex-shrink-0">
           <slot name="footer" />
         </div>
         <button

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WipInventory extends TenantModel
 {
+    protected $table = 'wip_inventory';
+
     protected $fillable = [
         'tenant_id',
         'batch_id',

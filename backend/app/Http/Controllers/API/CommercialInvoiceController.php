@@ -17,6 +17,7 @@ class CommercialInvoiceController extends Controller
     {
         $invoices = CommercialInvoice::where('tenant_id', auth()->user()->tenant_id)
             ->with(['order.product', 'batch', 'createdBy', 'attachments'])
+            ->orderBy('created_at', 'desc')
             ->get();
         
         // Calculate statistics
@@ -29,12 +30,12 @@ class CommercialInvoiceController extends Controller
         $totalValue = $thisMonth->sum('total_amount');
         
         $pending = $invoices->filter(function ($invoice) {
-            // Check if invoice status is pending (you may need to add a status field)
+            // Check if invoice status is pending
             return !$invoice->order || $invoice->order->status !== 'completed';
         })->count();
         
         $delivered = $invoices->filter(function ($invoice) {
-            // Check if invoice is delivered (you may need to add a status field)
+            // Check if invoice is delivered
             return $invoice->order && $invoice->order->status === 'completed';
         })->count();
         
@@ -58,24 +59,28 @@ class CommercialInvoiceController extends Controller
             'batch_id' => 'nullable|exists:batches,id',
             'product_details' => 'required|array',
             'invoice_date' => 'required|date',
+            'total_amount' => 'sometimes|numeric|min:0',
+            'currency' => 'nullable|string|in:USD,ETB',
             'notes' => 'nullable|string',
             'attachments' => 'array',
             'attachments.*' => 'file|max:10240',
         ]);
 
-        // Calculate total amount from product details
-        $totalAmount = 0;
-        foreach ($request->product_details as $product) {
-            if (isset($product['product_id'])) {
-                $productCost = ProductCost::where('product_id', $product['product_id'])
-                    ->where('tenant_id', auth()->user()->tenant_id)
-                    ->first();
-                
-                if ($productCost) {
-                    $totalAmount += $productCost->cost * ($product['quantity'] ?? 1);
+        // Calculate total amount from product details if not provided
+        $totalAmount = $request->total_amount ?? 0;
+        if (!$totalAmount) {
+            foreach ($request->product_details as $product) {
+                if (isset($product['product_id'])) {
+                    $productCost = ProductCost::where('product_id', $product['product_id'])
+                        ->where('tenant_id', auth()->user()->tenant_id)
+                        ->first();
+                    
+                    if ($productCost) {
+                        $totalAmount += $productCost->cost * ($product['quantity'] ?? 1);
+                    }
+                } elseif (isset($product['price'])) {
+                    $totalAmount += $product['price'] * ($product['quantity'] ?? 1);
                 }
-            } elseif (isset($product['price'])) {
-                $totalAmount += $product['price'] * ($product['quantity'] ?? 1);
             }
         }
 
@@ -88,6 +93,7 @@ class CommercialInvoiceController extends Controller
             'invoice_number' => $invoiceNumber,
             'product_details' => $request->product_details,
             'total_amount' => $totalAmount,
+            'currency' => $request->currency ?? 'USD',
             'invoice_date' => $request->invoice_date,
             'notes' => $request->notes,
             'created_by' => auth()->id(),
@@ -109,7 +115,7 @@ class CommercialInvoiceController extends Controller
             }
         }
 
-        // Auto-create revenue entry
+        // Auto-create revenue entry if invoice is finalized (you may want to add a status field)
         Revenue::create([
             'tenant_id' => auth()->user()->tenant_id,
             'commercial_invoice_id' => $invoice->id,
@@ -118,25 +124,26 @@ class CommercialInvoiceController extends Controller
             'description' => 'Revenue from invoice ' . $invoiceNumber,
         ]);
 
-        return response()->json($invoice->load(['order', 'batch', 'createdBy', 'attachments']), 201);
+        return response()->json($invoice->load(['order.product', 'batch', 'createdBy', 'attachments']), 201);
     }
 
     public function show($id)
     {
-        $invoice = CommercialInvoice::with([
-            'order.product',
-            'batch',
-            'createdBy',
-            'attachments',
-            'revenue'
-        ])->findOrFail($id);
+        $invoice = CommercialInvoice::where('tenant_id', auth()->user()->tenant_id)
+            ->with([
+                'order.product',
+                'batch',
+                'createdBy',
+                'attachments',
+                'revenue'
+            ])->findOrFail($id);
 
         return response()->json($invoice);
     }
 
     public function update(Request $request, $id)
     {
-        $invoice = CommercialInvoice::findOrFail($id);
+        $invoice = CommercialInvoice::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
 
         $request->validate([
             'order_id' => 'sometimes|exists:orders,id',
@@ -147,16 +154,37 @@ class CommercialInvoiceController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $invoice->update($request->only([
+        $updateData = $request->only([
             'order_id', 'batch_id', 'product_details', 'total_amount', 'invoice_date', 'notes'
-        ]));
+        ]);
 
-        return response()->json($invoice->load(['order', 'batch', 'createdBy', 'attachments']));
+        // Recalculate total if product_details changed
+        if ($request->has('product_details')) {
+            $totalAmount = 0;
+            foreach ($request->product_details as $product) {
+                if (isset($product['product_id'])) {
+                    $productCost = ProductCost::where('product_id', $product['product_id'])
+                        ->where('tenant_id', auth()->user()->tenant_id)
+                        ->first();
+                    
+                    if ($productCost) {
+                        $totalAmount += $productCost->cost * ($product['quantity'] ?? 1);
+                    }
+                } elseif (isset($product['price'])) {
+                    $totalAmount += $product['price'] * ($product['quantity'] ?? 1);
+                }
+            }
+            $updateData['total_amount'] = $totalAmount;
+        }
+
+        $invoice->update($updateData);
+
+        return response()->json($invoice->load(['order.product', 'batch', 'createdBy', 'attachments']));
     }
 
     public function destroy($id)
     {
-        $invoice = CommercialInvoice::findOrFail($id);
+        $invoice = CommercialInvoice::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
         $invoice->delete();
 
         return response()->json(['message' => 'Invoice deleted successfully']);

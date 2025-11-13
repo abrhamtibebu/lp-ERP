@@ -30,31 +30,42 @@ class UserSeeder extends Seeder
         $superAdminPassword = env('SUPER_ADMIN_PASSWORD', 'admin123');
         $superAdminName = env('SUPER_ADMIN_NAME', 'Super Admin');
 
-        $gmRole = Role::where('name', 'GM')->first();
-        
-        if ($gmRole) {
-            $superAdmin = User::firstOrCreate(
-                ['email' => $superAdminEmail],
-                [
-                    'name' => $superAdminName,
-                    'password' => Hash::make($superAdminPassword),
-                    'tenant_id' => $superAdminTenant->id,
-                    'department' => 'Administration',
-                    'position' => 'Super Admin',
-                    'employed_on' => now(),
-                ]
-            );
-
-            // Assign GM role to super-admin
-            if (!$superAdmin->roles()->wherePivot('tenant_id', $superAdminTenant->id)->where('role_id', $gmRole->id)->exists()) {
-                $superAdmin->roles()->attach($gmRole->id, ['tenant_id' => $superAdminTenant->id]);
-            }
-
-            $this->command->info('Super Admin created successfully!');
-            $this->command->info("Email: {$superAdminEmail}");
-            $this->command->info("Password: {$superAdminPassword}");
-            $this->command->info('');
+        // Get Admin role (handles both fresh install and migration scenarios)
+        // Migration will rename GM to Admin, so check for both
+        $adminRole = Role::where('name', 'Admin')->first();
+        if (!$adminRole) {
+            $adminRole = Role::where('name', 'GM')->first();
         }
+        if (!$adminRole) {
+            // Create Admin role if it doesn't exist (fresh install scenario)
+            $adminRole = Role::create([
+                'name' => 'Admin',
+                'display_name' => 'Administrator',
+                'description' => 'Full system access',
+            ]);
+        }
+        
+        $superAdmin = User::firstOrCreate(
+            ['email' => $superAdminEmail],
+            [
+                'name' => $superAdminName,
+                'password' => Hash::make($superAdminPassword),
+                'tenant_id' => $superAdminTenant->id,
+                'department' => 'Administration',
+                'position' => 'Super Admin',
+                'employed_on' => now(),
+            ]
+        );
+
+        // Assign Admin role to super-admin
+        if (!$superAdmin->roles()->wherePivot('tenant_id', $superAdminTenant->id)->where('role_id', $adminRole->id)->exists()) {
+            $superAdmin->roles()->attach($adminRole->id, ['tenant_id' => $superAdminTenant->id]);
+        }
+
+        $this->command->info('Super Admin created successfully!');
+        $this->command->info("Email: {$superAdminEmail}");
+        $this->command->info("Password: {$superAdminPassword}");
+        $this->command->info('');
 
         // Create a demo tenant (for demo data)
         $tenant = Tenant::firstOrCreate(
@@ -66,7 +77,11 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // Get all roles
+        // Get all roles (check for Admin first, fallback to GM for migration scenario)
+        $adminRoleForDemo = Role::where('name', 'Admin')->first();
+        if (!$adminRoleForDemo) {
+            $adminRoleForDemo = Role::where('name', 'GM')->first();
+        }
         $hrRole = Role::where('name', 'HR')->first();
         $inventoryRole = Role::where('name', 'Inventory Manager')->first();
         $productionRole = Role::where('name', 'Production Supervisor')->first();
@@ -76,14 +91,14 @@ class UserSeeder extends Seeder
         // Create users for each role
         $users = [
             [
-                'name' => 'General Manager',
-                'email' => 'gm@example.com',
+                'name' => 'Administrator',
+                'email' => 'admin@example.com',
                 'password' => Hash::make('password123'),
-                'department' => 'Management',
-                'position' => 'General Manager',
+                'department' => 'Administration',
+                'position' => 'Administrator',
                 'employed_on' => now()->subYears(2),
                 'emergency_contact' => 'Emergency: +1234567890',
-                'role' => $gmRole,
+                'role' => $adminRoleForDemo,
             ],
             [
                 'name' => 'HR Manager',

@@ -10,6 +10,7 @@ class Order extends TenantModel
     protected $fillable = [
         'tenant_id',
         'product_id',
+        'order_type',
         'quantity',
         'color',
         'sku',

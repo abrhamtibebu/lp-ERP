@@ -10,6 +10,12 @@ class ProductController extends Controller
 {
     public function index()
     {
+        // Allow both products.view and products.manage to view products
+        $user = auth()->user();
+        if (!$user->hasRole('Admin') && !$user->hasPermission('products.view') && !$user->hasPermission('products.manage')) {
+            return response()->json(['message' => 'Insufficient permissions. You need products.view or products.manage permission to view products.'], 403);
+        }
+
         $products = Product::where('tenant_id', auth()->user()->tenant_id)
             ->with('productCost')
             ->get();
@@ -18,12 +24,19 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        // Check permission: products.manage for create/update/delete, products.view for read-only
+        $user = auth()->user();
+        if (!$user->hasRole('Admin') && !$user->hasPermission('products.manage')) {
+            return response()->json(['message' => 'Insufficient permissions. You need products.manage permission to create products.'], 403);
+        }
+
         $request->validate([
             'product_name' => 'required|string|max:255',
             'color' => 'nullable|string|max:255',
             'sku' => 'required|string|max:255|unique:products,sku',
             'weight_kg' => 'nullable|numeric|min:0',
             'unit_price' => 'required|numeric|min:0',
+            'currency' => 'nullable|string|in:USD,ETB',
             'consumption_formula' => 'nullable|string',
             'description' => 'nullable|string',
         ]);
@@ -35,6 +48,7 @@ class ProductController extends Controller
             'sku' => $request->sku,
             'weight_kg' => $request->weight_kg,
             'unit_price' => $request->unit_price,
+            'currency' => $request->currency ?? 'USD',
             'consumption_formula' => $request->consumption_formula,
             'description' => $request->description,
         ]);
@@ -44,13 +58,27 @@ class ProductController extends Controller
 
     public function show($id)
     {
-        $product = Product::with('productCost', 'orders', 'finishedGoods')->findOrFail($id);
+        // Allow both products.view and products.manage to view products
+        $user = auth()->user();
+        if (!$user->hasRole('Admin') && !$user->hasPermission('products.view') && !$user->hasPermission('products.manage')) {
+            return response()->json(['message' => 'Insufficient permissions. You need products.view or products.manage permission to view products.'], 403);
+        }
+
+        $product = Product::where('tenant_id', auth()->user()->tenant_id)
+            ->with('productCost', 'orders', 'finishedGoods')
+            ->findOrFail($id);
         return response()->json($product);
     }
 
     public function update(Request $request, $id)
     {
-        $product = Product::findOrFail($id);
+        // Check permission: products.manage for create/update/delete
+        $user = auth()->user();
+        if (!$user->hasRole('Admin') && !$user->hasPermission('products.manage')) {
+            return response()->json(['message' => 'Insufficient permissions. You need products.manage permission to update products.'], 403);
+        }
+
+        $product = Product::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
 
         $request->validate([
             'product_name' => 'sometimes|string|max:255',
@@ -58,13 +86,14 @@ class ProductController extends Controller
             'sku' => 'sometimes|string|max:255|unique:products,sku,' . $id,
             'weight_kg' => 'nullable|numeric|min:0',
             'unit_price' => 'sometimes|numeric|min:0',
+            'currency' => 'nullable|string|in:USD,ETB',
             'consumption_formula' => 'nullable|string',
             'description' => 'nullable|string',
         ]);
 
         $product->update($request->only([
             'product_name', 'color', 'sku', 'weight_kg', 
-            'unit_price', 'consumption_formula', 'description'
+            'unit_price', 'currency', 'consumption_formula', 'description'
         ]));
 
         return response()->json($product->load('productCost'));
@@ -72,7 +101,13 @@ class ProductController extends Controller
 
     public function destroy($id)
     {
-        $product = Product::findOrFail($id);
+        // Check permission: products.manage for create/update/delete
+        $user = auth()->user();
+        if (!$user->hasRole('Admin') && !$user->hasPermission('products.manage')) {
+            return response()->json(['message' => 'Insufficient permissions. You need products.manage permission to delete products.'], 403);
+        }
+
+        $product = Product::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
         $product->delete();
 
         return response()->json(['message' => 'Product deleted successfully']);

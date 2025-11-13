@@ -151,7 +151,9 @@ const menuItemPermissions = {
     "/finance/expenses": "finance.expenses",
     "/finance/revenues": "finance.revenue",
     "/finance/miscellaneous-costs": "finance.expenses",
-    "/commercial-invoices": "logistics.invoices",
+    "/operations/procurement": "operations.manage",
+    "/logistics/invoices": "logistics.invoices",
+    "/admin/roles": "employees.create",
     "/admin/role-assignment": "employees.create",
     "/reports": "reports.view",
 };
@@ -254,6 +256,28 @@ const menuGroups = computed(() => {
             ],
         },
         {
+            name: "Operations",
+            items: [
+                {
+                    name: "Procurement",
+                    path: "/operations/procurement",
+                    icon: ShoppingCart,
+                    permission: "operations.manage",
+                },
+            ],
+        },
+        {
+            name: "Logistics",
+            items: [
+                {
+                    name: "Commercial Invoice",
+                    path: "/logistics/invoices",
+                    icon: FileText,
+                    permission: "logistics.invoices",
+                },
+            ],
+        },
+        {
             name: "Finance",
             items: [
                 {
@@ -286,9 +310,15 @@ const menuGroups = computed(() => {
             name: "Admin",
             items: [
                 {
+                    name: "Roles",
+                    path: "/admin/roles",
+                    icon: Shield,
+                    permission: "employees.create",
+                },
+                {
                     name: "Role Assignment",
                     path: "/admin/role-assignment",
-                    icon: Shield,
+                    icon: Users,
                     permission: "employees.create",
                 },
             ],

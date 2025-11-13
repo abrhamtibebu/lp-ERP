@@ -37,31 +37,74 @@
     </Card>
 
     <!-- Create/Edit Dialog -->
-    <Dialog v-model="dialogOpen" :title="dialogTitle" :description="dialogDescription">
-      <form @submit.prevent="saveCost" class="space-y-4">
-        <div class="space-y-2">
-          <Label for="description">Description *</Label>
-          <Input id="description" v-model="form.description" required />
+    <Dialog v-model="dialogOpen" :title="dialogTitle" :description="dialogDescription" class="max-w-3xl">
+      <form @submit.prevent="saveCost" class="space-y-6">
+        <!-- Cost Information Section -->
+        <div class="space-y-4">
+          <div class="flex items-center gap-2 pb-2 border-b border-gray-200">
+            <DollarSign class="h-5 w-5 text-[#8B4513]" />
+            <h3 class="text-lg font-semibold text-gray-900">Cost Information</h3>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2 md:col-span-2">
+              <Label for="description" class="flex items-center gap-2">
+                <FileText class="h-4 w-4 text-gray-500" />
+                Description *
+              </Label>
+              <Input id="description" v-model="form.description" placeholder="Enter cost description" required />
+            </div>
+            <div class="space-y-2">
+              <Label for="amount" class="flex items-center gap-2">
+                <DollarSign class="h-4 w-4 text-gray-500" />
+                Amount ($) *
+              </Label>
+              <Input id="amount" type="number" step="0.01" v-model="form.amount" required placeholder="0.00" min="0" />
+            </div>
+            <div class="space-y-2">
+              <Label for="type" class="flex items-center gap-2">
+                <Tag class="h-4 w-4 text-gray-500" />
+                Type *
+              </Label>
+              <Select v-model="form.type" placeholder="Select type">
+                <SelectItem value="adjustment">Adjustment</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </Select>
+            </div>
+          </div>
         </div>
-        <div class="space-y-2">
-          <Label for="amount">Amount *</Label>
-          <Input id="amount" type="number" step="0.01" v-model="form.amount" required />
-        </div>
-        <div class="space-y-2">
-          <Label for="type">Type *</Label>
-          <Select v-model="form.type">
-            <SelectItem value="adjustment">Adjustment</SelectItem>
-            <SelectItem value="other">Other</SelectItem>
-          </Select>
-        </div>
-        <div class="space-y-2">
-          <Label for="notes">Notes</Label>
-          <Input id="notes" v-model="form.notes" />
+
+        <!-- Additional Information Section -->
+        <div class="space-y-4">
+          <div class="flex items-center gap-2 pb-2 border-b border-gray-200">
+            <FileText class="h-5 w-5 text-[#8B4513]" />
+            <h3 class="text-lg font-semibold text-gray-900">Additional Information</h3>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2 md:col-span-2">
+              <Label for="notes" class="flex items-center gap-2">
+                <FileText class="h-4 w-4 text-gray-500" />
+                Notes
+              </Label>
+              <textarea
+                id="notes"
+                v-model="form.notes"
+                rows="3"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8B4513] focus:border-[#8B4513]"
+                placeholder="Enter additional notes or comments..."
+              ></textarea>
+            </div>
+          </div>
         </div>
       </form>
       <template #footer>
-        <Button type="button" variant="outline" @click="dialogOpen = false">Cancel</Button>
-        <Button type="button" @click="saveCost">Save</Button>
+        <div class="flex justify-end gap-3">
+          <Button type="button" variant="outline" @click="dialogOpen = false">
+            Cancel
+          </Button>
+          <Button type="button" @click="saveCost" class="bg-[#8B4513] hover:bg-[#6B3410] text-white">
+            {{ editingCost ? 'Update Cost' : 'Create Cost' }}
+          </Button>
+        </div>
       </template>
     </Dialog>
   </div>
@@ -69,7 +112,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { Plus, Edit, Trash2 } from 'lucide-vue-next';
+import { Plus, Edit, Trash2, DollarSign, FileText, Tag } from 'lucide-vue-next';
 import apiClient from '@/api/client';
 import Card from '@/components/ui/Card.vue';
 import CardContent from '@/components/ui/CardContent.vue';
@@ -81,6 +124,11 @@ import Label from '@/components/ui/Label.vue';
 import Select from '@/components/ui/Select.vue';
 import SelectItem from '@/components/ui/SelectItem.vue';
 import Badge from '@/components/ui/Badge.vue';
+import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
+
+const { toast } = useToast();
+const { confirm } = useConfirm();
 
 const costs = ref([]);
 const dialogOpen = ref(false);
@@ -116,28 +164,61 @@ const editCost = (cost) => {
 };
 
 const deleteCost = async (cost) => {
-  if (confirm(`Delete ${cost.description}?`)) {
-    try {
-      await apiClient.delete(`/miscellaneous-costs/${cost.id}`);
-      await loadCosts();
-    } catch (error) {
-      console.error('Error deleting cost:', error);
-    }
+  const confirmed = await confirm(
+    `Are you sure you want to delete ${cost.description}?`,
+    'Delete Cost',
+    'danger'
+  );
+  
+  if (!confirmed) return;
+
+  try {
+    await apiClient.delete(`/miscellaneous-costs/${cost.id}`);
+    await loadCosts();
+    toast.success('Cost deleted successfully');
+  } catch (error) {
+    console.error('Error deleting cost:', error);
+    toast.error('Error deleting cost', error.response?.data?.message || 'Error deleting cost');
   }
 };
 
 const saveCost = async () => {
+  // Validation
+  if (!form.value.description || form.value.description.trim() === '') {
+    toast.warning('Please enter description');
+    return;
+  }
+  
+  if (!form.value.amount || form.value.amount <= 0) {
+    toast.warning('Please enter a valid amount (greater than 0)');
+    return;
+  }
+  
+  if (!form.value.type || form.value.type.trim() === '') {
+    toast.warning('Please select type');
+    return;
+  }
+
   try {
+    const payload = {
+      ...form.value,
+      amount: parseFloat(form.value.amount),
+    };
+    
     if (editingCost.value) {
-      await apiClient.put(`/miscellaneous-costs/${editingCost.value.id}`, form.value);
+      await apiClient.put(`/miscellaneous-costs/${editingCost.value.id}`, payload);
     } else {
-      await apiClient.post('/miscellaneous-costs', form.value);
+      await apiClient.post('/miscellaneous-costs', payload);
     }
     dialogOpen.value = false;
     await loadCosts();
+    toast.success(editingCost.value ? 'Cost updated successfully' : 'Cost created successfully');
   } catch (error) {
     console.error('Error saving cost:', error);
-    alert(error.response?.data?.message || 'Error saving cost');
+    const errorMessage = error.response?.data?.message || error.response?.data?.errors
+      ? (error.response.data.errors ? JSON.stringify(error.response.data.errors) : error.response.data.message)
+      : 'Error saving cost';
+    toast.error('Error saving cost', errorMessage);
   }
 };
 

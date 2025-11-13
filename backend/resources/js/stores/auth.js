@@ -14,8 +14,8 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   const hasPermission = (permissionName) => {
-    // GM has all permissions
-    if (hasRole('GM')) return true;
+    // Admin has all permissions
+    if (hasRole('Admin')) return true;
     
     // Check if user has the permission through their roles
     // This would need to be implemented based on your permission structure

@@ -4,7 +4,7 @@
     <div class="flex justify-between items-center">
       <div>
         <h1 class="text-3xl font-bold text-[#8B4513]">Production</h1>
-        <p class="text-gray-600 mt-1">Track batch progress through production stages</p>
+        <p class="text-gray-600 mt-1">Track active batch progress through production stages</p>
       </div>
       <Button @click="createNewBatch" class="bg-[#8B4513] hover:bg-[#6B3410] text-white">
         <Plus class="h-4 w-4 mr-2" />
@@ -84,6 +84,16 @@
           >
             Update Stage
           </Button>
+          <Button 
+            variant="ghost" 
+            @click="deleteBatch(batch.id)"
+            :disabled="deleting[batch.id]"
+            class="text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Loader2 v-if="deleting[batch.id]" class="h-4 w-4 mr-2 animate-spin" />
+            <Trash2 v-else class="h-4 w-4 mr-2" />
+            {{ deleting[batch.id] ? 'Deleting...' : 'Delete' }}
+          </Button>
         </div>
       </div>
 
@@ -92,17 +102,27 @@
         <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
         </svg>
-        <p class="text-gray-500 text-lg">No batches found</p>
-        <p class="text-gray-400 text-sm mt-2">Create an order to generate batches</p>
+        <p class="text-gray-500 text-lg">No active batches found</p>
+        <p class="text-gray-400 text-sm mt-2">Create an order and generate a batch to start production</p>
       </div>
     </div>
 
     <!-- Update Stage Dialog -->
-    <Dialog v-model="updateStageDialogOpen" title="Update Stage" description="Move units to the next production stage">
-      <form @submit.prevent="submitStageUpdate" class="space-y-4">
+    <Dialog v-model="updateStageDialogOpen" title="Update Stage" description="Move units to the next production stage" class="max-w-3xl">
+      <form @submit.prevent="submitStageUpdate" class="space-y-6">
+        <!-- Stage Information Section -->
+        <div class="space-y-4">
+          <div class="flex items-center gap-2 pb-2 border-b border-gray-200">
+            <ArrowRightCircle class="h-5 w-5 text-[#8B4513]" />
+            <h3 class="text-lg font-semibold text-gray-900">Stage Information</h3>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="space-y-2">
-          <Label for="to_stage">To Stage *</Label>
-          <Select v-model="stageUpdateForm.to_stage_id">
+              <Label for="to_stage" class="flex items-center gap-2">
+                <ArrowRightCircle class="h-4 w-4 text-gray-500" />
+                To Stage *
+              </Label>
+              <Select v-model="stageUpdateForm.to_stage_id" placeholder="Select a stage">
             <SelectItem value="">Select a stage</SelectItem>
             <SelectItem 
               v-for="stage in availableStages" 
@@ -114,7 +134,10 @@
           </Select>
         </div>
         <div class="space-y-2">
-          <Label for="quantity">Quantity *</Label>
+              <Label for="quantity" class="flex items-center gap-2">
+                <Hash class="h-4 w-4 text-gray-500" />
+                Quantity *
+              </Label>
           <Input 
             id="quantity" 
             type="number" 
@@ -122,19 +145,46 @@
             :max="selectedBatch?.current_quantity"
             min="1"
             required 
+                placeholder="Enter quantity"
           />
           <p class="text-xs text-gray-500">Available: {{ selectedBatch?.current_quantity || 0 }} units</p>
+            </div>
+          </div>
         </div>
-        <div class="space-y-2">
-          <Label for="notes">Notes</Label>
-          <Input id="notes" v-model="stageUpdateForm.notes" />
+
+        <!-- Additional Information Section -->
+        <div class="space-y-4">
+          <div class="flex items-center gap-2 pb-2 border-b border-gray-200">
+            <FileText class="h-5 w-5 text-[#8B4513]" />
+            <h3 class="text-lg font-semibold text-gray-900">Additional Information</h3>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2 md:col-span-2">
+              <Label for="notes" class="flex items-center gap-2">
+                <FileText class="h-4 w-4 text-gray-500" />
+                Notes
+              </Label>
+              <textarea
+                id="notes"
+                v-model="stageUpdateForm.notes"
+                rows="3"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8B4513] focus:border-[#8B4513]"
+                placeholder="Enter notes or comments..."
+              ></textarea>
+            </div>
+          </div>
         </div>
       </form>
       <template #footer>
-        <Button type="button" variant="outline" @click="updateStageDialogOpen = false">Cancel</Button>
-        <Button type="button" @click="submitStageUpdate" class="bg-[#8B4513] hover:bg-[#6B3410] text-white">
-          Update Stage
+        <div class="flex justify-end gap-3">
+          <Button type="button" variant="outline" @click="updateStageDialogOpen = false">
+            Cancel
+          </Button>
+        <Button type="button" @click="submitStageUpdate" :disabled="updating" class="bg-[#8B4513] hover:bg-[#6B3410] text-white">
+          <Loader2 v-if="updating" class="h-4 w-4 mr-2 animate-spin" />
+          {{ updating ? 'Updating...' : 'Update Stage' }}
         </Button>
+        </div>
       </template>
     </Dialog>
   </div>
@@ -143,7 +193,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Plus, ArrowRight } from 'lucide-vue-next';
+import { Plus, ArrowRight, Package, ArrowRightCircle, FileText, Hash, Trash2, Loader2 } from 'lucide-vue-next';
 import apiClient from '@/api/client';
 import Button from '@/components/ui/Button.vue';
 import Dialog from '@/components/ui/Dialog.vue';
@@ -151,12 +201,19 @@ import Input from '@/components/ui/Input.vue';
 import Label from '@/components/ui/Label.vue';
 import Select from '@/components/ui/Select.vue';
 import SelectItem from '@/components/ui/SelectItem.vue';
+import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 
 const router = useRouter();
+const { toast } = useToast();
+const { confirm } = useConfirm();
+
 const batches = ref([]);
 const updateStageDialogOpen = ref(false);
 const selectedBatch = ref(null);
 const availableStages = ref([]);
+const deleting = ref({});
+const updating = ref(false);
 const stageUpdateForm = ref({
   to_stage_id: '',
   quantity: 1,
@@ -242,7 +299,9 @@ const getCurrentStageName = (batch) => {
 };
 
 const createNewBatch = () => {
+  // Redirect to orders page where users can create batches from pending orders
   router.push('/production/orders');
+  toast.info('Select a pending order and click "Create Batch" to start production');
 };
 
 const viewDetails = (batchId) => {
@@ -281,11 +340,12 @@ const updateStage = async (batchId) => {
 
 const submitStageUpdate = async () => {
   if (!selectedBatch.value || !stageUpdateForm.value.to_stage_id) {
-    alert('Please select a stage');
+    toast.warning('Please select a stage');
     return;
   }
   
   try {
+    updating.value = true;
     await apiClient.post(`/batches/${selectedBatch.value.id}/move-stage`, {
       to_stage_id: parseInt(stageUpdateForm.value.to_stage_id),
       quantity: stageUpdateForm.value.quantity,
@@ -294,20 +354,48 @@ const submitStageUpdate = async () => {
     
     updateStageDialogOpen.value = false;
     await loadBatches();
+    toast.success('Batch stage updated successfully');
   } catch (error) {
     console.error('Error updating stage:', error);
-    alert(error.response?.data?.message || 'Error updating stage');
+    toast.error('Error updating stage', error.response?.data?.message || 'Error updating stage');
+  } finally {
+    updating.value = false;
   }
 };
 
 const loadBatches = async () => {
   try {
+    // Load only active/opened batches (excludes completed)
     const response = await apiClient.get('/batches');
     batches.value = response.data || [];
   } catch (error) {
     console.error('Error fetching batches:', error);
+    toast.error('Error loading batches', error.response?.data?.message || 'Failed to load batches');
   }
 };
+
+async function deleteBatch(id) {
+  const confirmed = await confirm({
+    title: 'Delete Batch',
+    message: 'Are you sure you want to delete this batch? This action cannot be undone and will affect production tracking.',
+    type: 'danger'
+  });
+
+  if (!confirmed) return;
+
+  try {
+    deleting.value[id] = true;
+    await apiClient.delete(`/batches/${id}`);
+    await loadBatches();
+    toast.success('Batch deleted successfully');
+  } catch (error) {
+    console.error('Error deleting batch:', error);
+    const errorMessage = error.response?.data?.message || 'Error deleting batch';
+    toast.error('Error deleting batch', errorMessage);
+  } finally {
+    deleting.value[id] = false;
+  }
+}
 
 onMounted(() => {
   loadBatches();

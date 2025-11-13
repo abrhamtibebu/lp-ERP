@@ -9,13 +9,15 @@
     <div class="relative z-10 w-full max-w-md">
       <div class="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
         <div class="text-center mb-8">
-          <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-[#8B4513] to-[#6B3410] rounded-2xl mb-4 shadow-lg">
-            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
-            </svg>
+          <div class="inline-flex items-center justify-center mb-4">
+            <img 
+              src="https://www.parkerclay.com/cdn/shop/files/ParkerClay_logo.png?v=1632880083&width=255" 
+              alt="Parker Clay" 
+              class="h-16 w-auto"
+            />
           </div>
           <h1 class="text-4xl font-bold text-[#8B4513] mb-2">
-            Leather ERP
+            Parker Clay ERP
           </h1>
           <p class="text-gray-600 text-sm">
             Sign in to your account to continue

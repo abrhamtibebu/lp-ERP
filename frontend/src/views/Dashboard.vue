@@ -88,9 +88,8 @@
         <CardDescription>Latest production orders</CardDescription>
       </CardHeader>
       <CardContent>
-        <div class="overflow-x-auto -mx-4 sm:mx-0">
-          <div class="inline-block min-w-full align-middle px-4 sm:px-0">
-            <Table>
+        <div class="overflow-y-auto max-h-[calc(100vh-300px)]">
+          <Table class="w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead>Order #</TableHead>
@@ -120,7 +119,6 @@
               </TableBody>
             </Table>
           </div>
-        </div>
       </CardContent>
     </Card>
 
@@ -203,6 +201,7 @@ import BarChart from '@/components/charts/BarChart.vue';
 import PieChart from '@/components/charts/PieChart.vue';
 import DoughnutChart from '@/components/charts/DoughnutChart.vue';
 import apiClient from '@/api/client';
+import { chartColors } from '@/lib/chartTheme';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -235,13 +234,8 @@ const allOrders = ref([]);
 const allBatches = ref([]);
 const inventoryData = ref({ leather: [], accessories: [] });
 
-const chartOptions = {
-  plugins: {
-    legend: {
-      display: true,
-    }
-  }
-};
+// Chart options are now handled by the theme system in chart components
+const chartOptions = {};
 
 // Orders over time chart data
 const ordersChartData = computed(() => {
@@ -270,10 +264,8 @@ const ordersChartData = computed(() => {
     datasets: [{
       label: 'Orders',
       data: last7Days.map(date => ordersByDate[date]),
-      borderColor: 'rgb(99, 102, 241)',
-      backgroundColor: 'rgba(99, 102, 241, 0.1)',
-      fill: true,
-      tension: 0.4
+      borderColor: chartColors.primary.main,
+      backgroundColor: chartColors.primary.main,
     }]
   };
 });
@@ -289,22 +281,21 @@ const batchStatusChartData = computed(() => {
   });
 
   const colors = {
-    pending: 'rgb(234, 179, 8)',
-    in_progress: 'rgb(59, 130, 246)',
-    in_production: 'rgb(59, 130, 246)',
-    completed: 'rgb(34, 197, 94)',
-    on_hold: 'rgb(239, 68, 68)',
-    rework: 'rgb(239, 68, 68)',
-    unknown: 'rgb(156, 163, 175)'
+    pending: chartColors.warning.main,
+    in_progress: chartColors.info.main,
+    in_production: chartColors.info.main,
+    completed: chartColors.success.main,
+    on_hold: chartColors.danger.main,
+    rework: chartColors.danger.main,
+    unknown: '#9CA3AF'
   };
 
   return {
-    labels: Object.keys(statusCounts),
+    labels: Object.keys(statusCounts).map(s => s.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())),
     datasets: [{
       data: Object.values(statusCounts),
       backgroundColor: Object.keys(statusCounts).map(status => colors[status] || colors.unknown),
-      borderWidth: 2,
-      borderColor: '#fff'
+      borderColor: '#ffffff',
     }]
   };
 });
@@ -324,12 +315,14 @@ const inventoryChartData = computed(() => {
       {
         label: 'Leather (sqft)',
         data: [...leatherAvailable.slice(0, 5), ...Array(accessoryNames.length > 5 ? 5 : accessoryNames.length).fill(0)],
-        backgroundColor: 'rgba(99, 102, 241, 0.6)',
+        backgroundColor: chartColors.primary.main,
+        borderColor: chartColors.primary.main,
       },
       {
         label: 'Accessories',
         data: [...Array(leatherNames.length > 5 ? 5 : leatherNames.length).fill(0), ...accessoryAvailable.slice(0, 5)],
-        backgroundColor: 'rgba(34, 197, 94, 0.6)',
+        backgroundColor: chartColors.success.main,
+        borderColor: chartColors.success.main,
       }
     ]
   };
@@ -346,20 +339,19 @@ const orderStatusChartData = computed(() => {
   });
 
   const colors = {
-    pending: 'rgb(234, 179, 8)',
-    in_production: 'rgb(59, 130, 246)',
-    completed: 'rgb(34, 197, 94)',
-    cancelled: 'rgb(239, 68, 68)',
-    unknown: 'rgb(156, 163, 175)'
+    pending: chartColors.warning.main,
+    in_production: chartColors.info.main,
+    completed: chartColors.success.main,
+    cancelled: chartColors.danger.main,
+    unknown: '#9CA3AF'
   };
 
   return {
-    labels: Object.keys(statusCounts),
+    labels: Object.keys(statusCounts).map(s => s.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())),
     datasets: [{
       data: Object.values(statusCounts),
       backgroundColor: Object.keys(statusCounts).map(status => colors[status] || colors.unknown),
-      borderWidth: 2,
-      borderColor: '#fff'
+      borderColor: '#ffffff',
     }]
   };
 });

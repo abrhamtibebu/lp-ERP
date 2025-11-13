@@ -22,8 +22,8 @@ class PermissionMiddleware
             return response()->json(['message' => 'Unauthenticated'], 401);
         }
 
-        // GM role has all permissions
-        if ($user->hasRole('GM')) {
+        // Admin role has all permissions
+        if ($user->hasRole('Admin')) {
             return $next($request);
         }
 

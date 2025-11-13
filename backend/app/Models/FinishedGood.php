@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class FinishedGood extends TenantModel
 {
@@ -27,6 +28,11 @@ class FinishedGood extends TenantModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(FinishedGoodsAdjustment::class);
     }
 }
 

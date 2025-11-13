@@ -25,7 +25,7 @@
         class="absolute z-50 mt-1 w-full min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md"
         @click.stop
       >
-        <div class="p-1">
+        <div class="p-1 max-h-[300px] overflow-y-auto select-dropdown">
           <slot />
         </div>
       </div>
@@ -80,3 +80,37 @@ provide('selectUpdate', (value, label) => {
   isOpen.value = false;
 });
 </script>
+
+<style scoped>
+.select-dropdown {
+  /* Custom scrollbar styling for webkit browsers (Chrome, Safari, Edge) */
+  scrollbar-width: thin;
+  scrollbar-color: rgb(209, 213, 219) rgb(243, 244, 246);
+}
+
+.select-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.select-dropdown::-webkit-scrollbar-track {
+  background: rgb(243, 244, 246);
+  border-radius: 4px;
+}
+
+.select-dropdown::-webkit-scrollbar-thumb {
+  background: rgb(209, 213, 219);
+  border-radius: 4px;
+}
+
+.select-dropdown::-webkit-scrollbar-thumb:hover {
+  background: rgb(156, 163, 175);
+}
+
+/* Firefox scrollbar styling */
+@supports (scrollbar-width: thin) {
+  .select-dropdown {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(209, 213, 219) rgb(243, 244, 246);
+  }
+}
+</style>

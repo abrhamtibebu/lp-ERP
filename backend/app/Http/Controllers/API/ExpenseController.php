@@ -21,6 +21,7 @@ class ExpenseController extends Controller
         $request->validate([
             'description' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0',
+            'currency' => 'nullable|string|in:USD,ETB',
             'cost_center' => 'required|string|max:255',
             'category' => 'nullable|string|max:255',
             'expense_date' => 'required|date',
@@ -30,6 +31,7 @@ class ExpenseController extends Controller
             'tenant_id' => auth()->user()->tenant_id,
             'description' => $request->description,
             'amount' => $request->amount,
+            'currency' => $request->currency ?? 'USD',
             'cost_center' => $request->cost_center,
             'category' => $request->category,
             'expense_date' => $request->expense_date,
@@ -52,16 +54,25 @@ class ExpenseController extends Controller
         $request->validate([
             'description' => 'sometimes|string|max:255',
             'amount' => 'sometimes|numeric|min:0',
+            'currency' => 'nullable|string|in:USD,ETB',
             'cost_center' => 'sometimes|string|max:255',
             'category' => 'nullable|string|max:255',
             'expense_date' => 'sometimes|date',
         ]);
 
         $expense->update($request->only([
-            'description', 'amount', 'cost_center', 'category', 'expense_date'
+            'description', 'amount', 'currency', 'cost_center', 'category', 'expense_date'
         ]));
 
         return response()->json($expense->load('createdBy'));
+    }
+
+    public function destroy($id)
+    {
+        $expense = Expense::where('tenant_id', auth()->user()->tenant_id)->findOrFail($id);
+        $expense->delete();
+
+        return response()->json(['message' => 'Expense deleted successfully']);
     }
 }
 

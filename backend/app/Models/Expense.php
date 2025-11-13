@@ -10,6 +10,7 @@ class Expense extends TenantModel
         'tenant_id',
         'description',
         'amount',
+        'currency',
         'cost_center',
         'category',
         'expense_date',

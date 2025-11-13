@@ -10,6 +10,7 @@ class ProductCost extends TenantModel
         'tenant_id',
         'product_id',
         'cost',
+        'currency',
         'is_locked',
         'locked_by',
         'locked_at',

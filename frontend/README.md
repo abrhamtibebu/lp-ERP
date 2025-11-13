@@ -1,6 +1,6 @@
-# Leather ERP Frontend
+# Parker Clay ERP Frontend
 
-Vue 3 SPA frontend for the Leather Goods Manufacturing ERP System.
+Vue 3 SPA frontend for the Parker Clay ERP System.
 
 ## Setup
 

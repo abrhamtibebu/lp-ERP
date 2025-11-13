@@ -75,33 +75,35 @@
           <CardTitle>Stage Movement History</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>From Stage</TableHead>
-                <TableHead>To Stage</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Supervisor</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Notes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow v-for="movement in batch.stageMovements || []" :key="movement.id">
-                <TableCell>{{ movement.fromStage?.name || 'N/A' }}</TableCell>
-                <TableCell>{{ movement.toStage?.name || 'N/A' }}</TableCell>
-                <TableCell>{{ movement.quantity }}</TableCell>
-                <TableCell>{{ movement.supervisor?.name || 'N/A' }}</TableCell>
-                <TableCell>{{ formatDate(movement.created_at) }}</TableCell>
-                <TableCell>{{ movement.notes || '-' }}</TableCell>
-              </TableRow>
-              <TableRow v-if="!batch.stageMovements || batch.stageMovements.length === 0">
-                <TableCell colspan="6" class="text-center text-gray-500 py-8">
-                  No stage movements recorded
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          <div class="overflow-y-auto max-h-[400px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>From Stage</TableHead>
+                  <TableHead>To Stage</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Supervisor</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <TableRow v-for="movement in batch.stageMovements || []" :key="movement.id">
+                  <TableCell>{{ movement.fromStage?.name || 'N/A' }}</TableCell>
+                  <TableCell>{{ movement.toStage?.name || 'N/A' }}</TableCell>
+                  <TableCell>{{ movement.quantity }}</TableCell>
+                  <TableCell>{{ movement.supervisor?.name || 'N/A' }}</TableCell>
+                  <TableCell>{{ formatDate(movement.created_at) }}</TableCell>
+                  <TableCell>{{ movement.notes || '-' }}</TableCell>
+                </TableRow>
+                <TableRow v-if="!batch.stageMovements || batch.stageMovements.length === 0">
+                  <TableCell colspan="6" class="text-center text-gray-500 py-8">
+                    No stage movements recorded
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -151,8 +153,11 @@ import TableBody from '@/components/ui/TableBody.vue';
 import TableRow from '@/components/ui/TableRow.vue';
 import TableHead from '@/components/ui/TableHead.vue';
 import TableCell from '@/components/ui/TableCell.vue';
+import { useToast } from '@/composables/useToast';
 
 const route = useRoute();
+const { toast } = useToast();
+
 const batch = ref(null);
 const productionStages = ref([]);
 const loading = ref(true);
@@ -186,7 +191,7 @@ async function fetchBatch() {
     batch.value = response.data;
   } catch (error) {
     console.error('Error fetching batch:', error);
-    alert('Failed to load batch details');
+    toast.error('Failed to load batch details', error.response?.data?.message || 'Error loading batch');
   } finally {
     loading.value = false;
   }
@@ -203,7 +208,7 @@ async function fetchProductionStages() {
 
 async function moveToStage() {
   if (!movementForm.value.to_stage_id || !movementForm.value.quantity) {
-    alert('Please fill in all required fields');
+    toast.warning('Please fill in all required fields');
     return;
   }
 
@@ -214,12 +219,12 @@ async function moveToStage() {
       quantity: movementForm.value.quantity,
       notes: movementForm.value.notes,
     });
-    alert('Batch moved successfully!');
+    toast.success('Batch moved successfully!');
     movementForm.value = { to_stage_id: '', quantity: 1, notes: '' };
     await fetchBatch(); // Refresh batch data
   } catch (error) {
     console.error('Error moving batch:', error);
-    alert(error.response?.data?.message || 'Failed to move batch');
+    toast.error('Failed to move batch', error.response?.data?.message || 'Error moving batch');
   } finally {
     moving.value = false;
   }

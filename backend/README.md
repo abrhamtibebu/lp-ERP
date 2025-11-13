@@ -1,6 +1,6 @@
-# Leather ERP Backend
+# Parker Clay ERP Backend
 
-Laravel 12 API backend for the Leather Goods Manufacturing ERP System.
+Laravel 12 API backend for the Parker Clay ERP System.
 
 ## Setup
 

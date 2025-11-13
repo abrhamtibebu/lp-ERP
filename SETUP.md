@@ -1,6 +1,6 @@
-# Setup Guide - Leather ERP System
+# Setup Guide - Parker Clay ERP System
 
-This guide will help you set up and run the Leather ERP system with separate frontend and backend folders.
+This guide will help you set up and run the Parker Clay ERP system with separate frontend and backend folders.
 
 ## Project Structure
 

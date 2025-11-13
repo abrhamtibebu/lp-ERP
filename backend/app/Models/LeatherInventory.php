@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class LeatherInventory extends TenantModel
 {
+    protected $table = 'leather_inventory';
+
     protected $fillable = [
         'tenant_id',
         'leather_name',
@@ -14,6 +16,7 @@ class LeatherInventory extends TenantModel
         'supplier_id',
         'purchase_date',
         'quantity_sqft',
+        'low_stock_threshold',
         'consumption_reduction',
         'submitted_by',
         'received_by',
@@ -23,6 +26,7 @@ class LeatherInventory extends TenantModel
     protected $casts = [
         'purchase_date' => 'date',
         'quantity_sqft' => 'decimal:2',
+        'low_stock_threshold' => 'decimal:2',
         'consumption_reduction' => 'decimal:2',
     ];
 
@@ -44,6 +48,11 @@ class LeatherInventory extends TenantModel
     public function consumptionLogs(): HasMany
     {
         return $this->hasMany(LeatherConsumptionLog::class, 'leather_inventory_id');
+    }
+
+    public function adjustments(): HasMany
+    {
+        return $this->hasMany(LeatherInventoryAdjustment::class);
     }
 }
 

@@ -8,6 +8,7 @@ class MiscellaneousCost extends TenantModel
         'tenant_id',
         'description',
         'amount',
+        'currency',
         'type',
         'notes',
     ];

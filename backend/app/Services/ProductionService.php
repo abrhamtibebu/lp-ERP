@@ -32,6 +32,25 @@ class ProductionService
         return DB::transaction(function () use ($batch, $toStageId, $quantity, $supervisorId, $fromStageId, $notes) {
             $toStage = ProductionStage::findOrFail($toStageId);
             
+            // Check if this is the first movement (before creating the movement record)
+            // Deduct raw materials only on the first movement to prevent consuming materials multiple times
+            $hasPreviousMovements = $batch->stageMovements()->exists();
+            if (!$hasPreviousMovements) {
+                $tenant = Tenant::findOrFail($batch->tenant_id);
+                try {
+                    $this->consumptionService->deductMaterials($batch, $quantity, $tenant->leather_consumption_mode);
+                } catch (\Exception $e) {
+                    // Log the error for tracking
+                    \Log::warning('Failed to deduct materials for batch movement', [
+                        'batch_id' => $batch->id,
+                        'quantity' => $quantity,
+                        'error' => $e->getMessage(),
+                    ]);
+                    // Re-throw the exception so the user is notified
+                    throw $e;
+                }
+            }
+            
             // Create movement record
             $movement = BatchStageMovement::create([
                 'tenant_id' => $batch->tenant_id,
@@ -61,10 +80,6 @@ class ProductionService
             if ($toStage->name === 'Goods at Inventory') {
                 $this->moveToFinishedGoods($batch, $quantity);
             }
-
-            // Deduct raw materials based on consumption mode
-            $tenant = Tenant::findOrFail($batch->tenant_id);
-            $this->consumptionService->deductMaterials($batch, $quantity, $tenant->leather_consumption_mode);
 
             return $movement;
         });
